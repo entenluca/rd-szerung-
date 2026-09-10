@@ -7,8 +7,10 @@ Config.Locale = 'de'
 Config.Debug = false
 
 -- MaaviM Rettungswache MP Preset aktivieren?
--- Setze auf true und passe config/presets/maavim_rettungswache.lua an
 Config.UseMaavimRettungswachePreset = true
+
+-- Auto-Setup: erkennt MLO-Tore automatisch (siehe Preset)
+Config.AutoSetup = Config.AutoSetup or nil
 
 -- Name der MLO-Ressource (nur Hinweis/Check beim Start)
 Config.MloResource = 'MM_Rettungswache'

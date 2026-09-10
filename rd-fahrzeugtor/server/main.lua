@@ -1,4 +1,4 @@
-local GateStatesServer = {}
+GateStatesServer = {}
 
 local function initGateStates()
     for _, gate in ipairs(Config.Gates) do

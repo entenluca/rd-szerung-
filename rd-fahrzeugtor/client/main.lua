@@ -283,6 +283,38 @@ local function registerGate(gateId, gate, gateData)
     RegisterGateInteraction(gateId, gate, gateData.entity)
 end
 
+function RegisterDiscoveredGate(gate, panelEntities)
+    if Gates[gate.id] then
+        return
+    end
+
+    local panels = {}
+    for _, object in ipairs(panelEntities or {}) do
+        if DoesEntityExist(object.entity) then
+            panels[#panels + 1] = {
+                entity = object.entity,
+                closedCoords = object.coords,
+                closedHeading = object.heading,
+            }
+        end
+    end
+
+    if #panels == 0 then
+        return
+    end
+
+    local gateData = {
+        config = gate,
+        entity = panels[1].entity,
+        panels = panels,
+        warningLight = ResolveMloWarningLight(gate),
+        state = GateStates.CLOSED,
+        progress = 0.0,
+    }
+
+    registerGate(gate.id, gate, gateData)
+end
+
 RegisterNetEvent('rd-fahrzeugtor:applyState', function(gateId, state, progress)
     applyGateState(gateId, state, progress)
 end)
@@ -315,12 +347,15 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
 end)
 
-CreateThread(function()
-    if Config.MloResource and GetResourceState(Config.MloResource) == 'missing' then
-        print(('[rd-fahrzeugtor] Hinweis: MLO-Ressource "%s" nicht gefunden – stelle sicher, dass sie gestartet ist.'):format(Config.MloResource))
-    end
-
+local function initializeConfiguredGates()
     for _, gate in ipairs(Config.Gates) do
+        if Config.AutoSetup and Config.AutoSetup.enabled then
+            local hasPanels = gate.panels and #gate.panels > 0
+            if IsMloGate(gate) and not hasPanels then
+                goto continue
+            end
+        end
+
         if IsMloGate(gate) then
             local gateData = createGateData(gate, nil, nil)
             registerGate(gate.id, gate, gateData)
@@ -331,6 +366,8 @@ CreateThread(function()
                 registerGate(gate.id, gate, gateData)
             end
         end
+
+        ::continue::
     end
 
     WaitForMloGates(Gates, function(gateId, gateData)
@@ -343,6 +380,13 @@ CreateThread(function()
 
         RegisterGateTarget(gateId, gateData.entity)
     end)
+end
 
+CreateThread(function()
+    if Config.MloResource and GetResourceState(Config.MloResource) == 'missing' then
+        print(('[rd-fahrzeugtor] Hinweis: MLO-Ressource "%s" nicht gefunden – stelle sicher, dass sie gestartet ist.'):format(Config.MloResource))
+    end
+
+    initializeConfiguredGates()
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
 end)

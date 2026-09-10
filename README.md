@@ -38,35 +38,16 @@ ensure rd-fahrzeugtor
 
 ### MaaviM Rettungswache MP einrichten
 
-Die Tore und Warnleuchten sind **Teil des MLO** – du musst einmalig die Modell-Hashes und Koordinaten auslesen:
+Die Tore werden **automatisch erkannt** – kein manuelles Hash-Auslesen nötig.
 
-1. Gehe zur Rettungswache (wie auf deinem Screenshot)
-2. Stelle dich vor ein **geschlossenes** Tor-Panel
-3. Führe aus: `/rd_tor_scan 4`
-4. In der **F8-Konsole** siehst du Modell-Hash und Koordinaten
-5. Trage diese in `panels` ein:
+1. `ensure MM_Rettungswache` vor `ensure rd-fahrzeugtor`
+2. `Config.UseMaavimRettungswachePreset = true` (Standard)
+3. Starte den Server – das Script scannt die Rettungswache (Postal 7324 / West Mirror Drive)
+4. Falls nötig: stell dich vor die Tore und nutze `/rd_tor_autosetup`
 
-```lua
-panels = {
-    { model = `1234567890`, searchCoords = vec3(x, y, z), searchRadius = 2.5 },
-    -- bei Sektionaltoren oft mehrere Panels pro Tor
-},
-```
+**MLO woanders platziert?** Passe in `config/presets/maavim_rettungswache.lua` nur `Config.AutoSetup.center` an.
 
-6. Stelle dich in die **Mitte des Tores** → `/rd_tor_copy` für `closed` und `target.coords`
-7. Passe `travel` an (Hubhöhe, meist **3.5–4.2** Meter bei Sektionaltoren)
-8. Warnleuchte: mit `/rd_tor_scan` die rote Leuchte neben dem Tor finden:
-
-```lua
-warningLight = {
-    mode = 'mlo',
-    model = `WARNLEUCHTEN_HASH`,
-    searchCoords = vec3(x, y, z),
-    searchRadius = 1.5,
-},
-```
-
-9. Wiederhole für Tor 2 und Tor 3
+**Manuell einrichten** (falls Auto-Setup nicht greift): `/rd_tor_scan 4` und `/rd_tor_copy`
 
 ### Scanner-Befehle
 

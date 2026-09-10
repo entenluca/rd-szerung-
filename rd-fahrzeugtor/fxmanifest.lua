@@ -21,13 +21,15 @@ client_scripts {
     'client/warning_light.lua',
     'client/mlo.lua',
     'client/main.lua',
+    'client/autosetup.lua',
     'client/nui.lua',
     'client/remote.lua',
     'client/dev.lua',
 }
 
 server_scripts {
-    'server/*.lua',
+    'server/main.lua',
+    'server/autosetup.lua',
 }
 
 ui_page 'html/index.html'
