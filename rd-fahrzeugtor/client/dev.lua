@@ -79,6 +79,42 @@ RegisterCommand('rd_tor_scan', function(_, args)
     })
 end, false)
 
+RegisterCommand('rd_tor_test', function()
+    local entity = nil
+    local hit, rayEntity = lib.raycast.fromCamera(511, 4, 15.0)
+    if hit and rayEntity and DoesEntityExist(rayEntity) then
+        entity = rayEntity
+    end
+
+    if not entity then
+        lib.notify({ title = 'Tor-Test', description = 'Kein Objekt im Fadenkreuz.', type = 'error' })
+        return
+    end
+
+    local before = GetEntityCoords(entity)
+    FreezeEntityPosition(entity, false)
+    SetEntityCoords(entity, before.x, before.y, before.z + 0.5, false, false, false, true)
+    Wait(200)
+    local after = GetEntityCoords(entity)
+    SetEntityCoords(entity, before.x, before.y, before.z, false, false, false, true)
+    FreezeEntityPosition(entity, true)
+
+    local moved = math.abs(after.z - before.z) > 0.1
+    local model = GetEntityModel(entity)
+    local archetype = GetEntityArchetypeName(entity)
+
+    print(('[rd-fahrzeugtor TEST] Modell: %s | Archetype: %s | Bewegung: %s'):format(model, archetype, moved and 'OK' or 'NEIN'))
+
+    lib.notify({
+        title = 'Tor-Test',
+        description = moved
+            and 'Objekt kann bewegt werden – nutze /rd_tor_bind'
+            or 'Objekt ist fest (MLO-Mesh) – kann nicht verschoben werden',
+        type = moved and 'success' or 'error',
+        duration = 10000,
+    })
+end, false)
+
 RegisterCommand('rd_tor_copy', function()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)

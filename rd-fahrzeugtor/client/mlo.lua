@@ -1,3 +1,134 @@
+local DoorHashes = {}
+
+local function requestEntityControl(entity)
+    if not entity or not DoesEntityExist(entity) then
+        return false
+    end
+
+    if NetworkGetEntityIsNetworked(entity) then
+        local timeout = GetGameTimer() + 2000
+        while not NetworkHasControlOfEntity(entity) and GetGameTimer() < timeout do
+            NetworkRequestControlOfEntity(entity)
+            Wait(0)
+        end
+    end
+
+    return DoesEntityExist(entity)
+end
+
+local function hideOriginalEntity(entity)
+    if not entity or not DoesEntityExist(entity) then
+        return
+    end
+
+    SetEntityAlpha(entity, 0, false)
+    SetEntityCollision(entity, false, false)
+    FreezeEntityPosition(entity, true)
+    SetEntityVisible(entity, false, false)
+end
+
+local function showOriginalEntity(entity)
+    if not entity or not DoesEntityExist(entity) then
+        return
+    end
+
+    SetEntityAlpha(entity, 255, false)
+    SetEntityCollision(entity, true, true)
+    SetEntityVisible(entity, true, false)
+end
+
+local function createPanelClone(originalEntity)
+    if not originalEntity or not DoesEntityExist(originalEntity) then
+        return nil
+    end
+
+    local model = GetEntityModel(originalEntity)
+    local coords = GetEntityCoords(originalEntity)
+    local heading = GetEntityHeading(originalEntity)
+
+    if not IsModelInCdimage(model) then
+        return nil
+    end
+
+    RequestModel(model)
+    local timeout = GetGameTimer() + 5000
+    while not HasModelLoaded(model) do
+        if GetGameTimer() > timeout then
+            return nil
+        end
+        Wait(0)
+    end
+
+    local clone = CreateObject(model, coords.x, coords.y, coords.z, false, false, false)
+    SetModelAsNoLongerNeeded(model)
+
+    if clone == 0 then
+        return nil
+    end
+
+    SetEntityHeading(clone, heading)
+    SetEntityAsMissionEntity(clone, true, true)
+    FreezeEntityPosition(clone, true)
+    SetEntityCollision(clone, true, true)
+
+    hideOriginalEntity(originalEntity)
+
+    return clone
+end
+
+function PrepareMloPanel(panel)
+    if panel.clone and DoesEntityExist(panel.clone) then
+        return panel
+    end
+
+    if not panel.entity or not DoesEntityExist(panel.entity) then
+        return panel
+    end
+
+    panel.originalEntity = panel.entity
+    panel.closedCoords = GetEntityCoords(panel.entity)
+    panel.closedHeading = GetEntityHeading(panel.entity)
+
+    local clone = createPanelClone(panel.entity)
+    if clone then
+        panel.clone = clone
+        panel.entity = clone
+        panel.closedCoords = GetEntityCoords(clone)
+        panel.closedHeading = GetEntityHeading(clone)
+    end
+
+    return panel
+end
+
+function RegisterDoorNative(gateId, panelIndex, entity)
+    if not entity or not DoesEntityExist(entity) then
+        return
+    end
+
+    local coords = GetEntityCoords(entity)
+    local model = GetEntityModel(entity)
+    local doorHash = joaat(('%s_%s'):format(gateId, panelIndex))
+
+    if not IsDoorRegisteredWithSystem(doorHash) then
+        AddDoorToSystem(doorHash, model, coords.x, coords.y, coords.z, false, false, false)
+    end
+
+    DoorSystemSetAutomaticDistance(doorHash, 0.0, false, false)
+    DoorSystemSetAutomaticRate(doorHash, 0.0, false, false)
+    DoorSystemSetDoorState(doorHash, 1, false, false)
+
+    DoorHashes[('%s_%s'):format(gateId, panelIndex)] = doorHash
+    return doorHash
+end
+
+function SetDoorNativeState(gateId, panelIndex, open)
+    local key = ('%s_%s'):format(gateId, panelIndex)
+    local doorHash = DoorHashes[key]
+    if doorHash and IsDoorRegisteredWithSystem(doorHash) then
+        DoorSystemSetDoorState(doorHash, open and 0 or 1, false, false)
+    end
+end
+
 local function findObjectAt(model, coords, radius)
     local entity = GetClosestObjectOfType(coords.x, coords.y, coords.z, radius, model, false, false, false)
     if entity ~= 0 and DoesEntityExist(entity) then
@@ -29,6 +160,7 @@ function SecureMloPanel(entity, frozen)
         return
     end
 
+    requestEntityControl(entity)
     SetEntityAsMissionEntity(entity, true, true)
     SetEntityInvincible(entity, true)
     FreezeEntityPosition(entity, frozen == true)
@@ -40,8 +172,6 @@ function SecureMloGatePanels(gateData, frozen)
     end
 end
 
----@param gate table
----@return table[]
 function ResolveMloPanels(gate)
     local panels = {}
     local definitions = gate.panels or {}
@@ -69,24 +199,17 @@ function ResolveMloPanels(gate)
         end
 
         for _, entity in ipairs(entities) do
-            local closedCoords = GetEntityCoords(entity)
-            local closedHeading = GetEntityHeading(entity)
-
-            panels[#panels + 1] = {
+            panels[#panels + 1] = PrepareMloPanel({
                 entity = entity,
-                closedCoords = closedCoords,
-                closedHeading = closedHeading,
-            }
-
-            SecureMloPanel(entity, true)
+                closedCoords = GetEntityCoords(entity),
+                closedHeading = GetEntityHeading(entity),
+            })
         end
     end
 
     return panels
 end
 
----@param gate table
----@return number|nil
 function ResolveMloWarningLight(gate)
     local lightConfig = gate.warningLight
     if not lightConfig or lightConfig.mode == 'spawn' then
@@ -101,39 +224,42 @@ function ResolveMloWarningLight(gate)
     return findObjectAt(lightConfig.model, coords, lightConfig.searchRadius or 2.0)
 end
 
----@param gateData table
----@param progress number
----@param moving boolean
 function UpdateMloGateTransform(gateData, progress, moving)
     local gate = gateData.config
+    local gateId = gate.id
     local referenceClosed = vector3(gate.closed.x, gate.closed.y, gate.closed.z)
     local currentRef = CalculateGateTransform(gate, progress)
     local delta = currentRef - referenceClosed
+    local travel = GetGateTravelDistance(gate)
 
-    for _, panel in ipairs(gateData.panels or {}) do
+    for index, panel in ipairs(gateData.panels or {}) do
         if panel.entity and DoesEntityExist(panel.entity) then
+            requestEntityControl(panel.entity)
+
             if moving then
-                SecureMloPanel(panel.entity, false)
+                FreezeEntityPosition(panel.entity, false)
             end
 
             local pos = panel.closedCoords + delta
-            SetEntityCoordsNoOffset(panel.entity, pos.x, pos.y, pos.z, false, false, false)
+            SetEntityCoords(panel.entity, pos.x, pos.y, pos.z, false, false, false, true)
 
             if panel.closedHeading then
                 SetEntityHeading(panel.entity, panel.closedHeading)
             end
 
             if not moving then
-                SecureMloPanel(panel.entity, true)
+                FreezeEntityPosition(panel.entity, true)
+            end
+
+            if gateData.useDoorNative and progress <= 0.01 then
+                SetDoorNativeState(gateId, index, false)
+            elseif gateData.useDoorNative and progress >= 0.99 then
+                SetDoorNativeState(gateId, index, true)
             end
         end
     end
 end
 
----@param gateId string
----@param gate table
----@param gateData table
----@return boolean
 function TryResolveMloGate(gateId, gate, gateData)
     local panels = ResolveMloPanels(gate)
 
@@ -145,6 +271,11 @@ function TryResolveMloGate(gateId, gate, gateData)
     gateData.entity = panels[1].entity
     gateData.warningLight = ResolveMloWarningLight(gate)
     gateData.resolved = true
+    gateData.bound = true
+
+    for index, panel in ipairs(panels) do
+        RegisterDoorNative(gateId, index, panel.originalEntity or panel.entity)
+    end
 
     UpdateMloGateTransform(gateData, gateData.progress or 0.0, false)
 
@@ -174,4 +305,15 @@ function WaitForMloGates(gates, onResolved)
             Wait(2000)
         end
     end)
+end
+
+function CleanupMloGate(gateData)
+    for _, panel in ipairs(gateData.panels or {}) do
+        if panel.clone and DoesEntityExist(panel.clone) then
+            DeleteEntity(panel.clone)
+        end
+        if panel.originalEntity then
+            showOriginalEntity(panel.originalEntity)
+        end
+    end
 end

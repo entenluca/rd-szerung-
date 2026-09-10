@@ -382,11 +382,11 @@ function RegisterDiscoveredGate(gate, panelEntities)
     local panels = {}
     for _, object in ipairs(panelEntities or {}) do
         if DoesEntityExist(object.entity) then
-            panels[#panels + 1] = {
+            panels[#panels + 1] = PrepareMloPanel({
                 entity = object.entity,
                 closedCoords = object.coords,
                 closedHeading = object.heading,
-            }
+            })
         end
     end
 
@@ -432,7 +432,9 @@ AddEventHandler('onResourceStop', function(resourceName)
     CloseGateUI()
 
     for _, gateData in pairs(Gates) do
-        if not IsMloGate(gateData.config) then
+        if IsMloGate(gateData.config) then
+            CleanupMloGate(gateData)
+        else
             if gateData.entity and DoesEntityExist(gateData.entity) then
                 DeleteEntity(gateData.entity)
             end
@@ -489,11 +491,14 @@ CreateThread(function()
 
     initializeConfiguredGates()
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
+    TriggerServerEvent('rd-fahrzeugtor:requestGateBinds')
 
-    lib.notify({
-        title = 'Fahrzeugtor',
-        description = 'Tore binden: Schau auf Panel → /rd_tor_bind 1 (2, 3)',
-        type = 'inform',
-        duration = 12000,
-    })
+    if Config.ShowSetupHint then
+        lib.notify({
+            title = 'Fahrzeugtor',
+            description = 'Tore binden: Schau auf Panel → /rd_tor_bind 1 (2, 3)',
+            type = 'inform',
+            duration = 12000,
+        })
+    end
 end)
