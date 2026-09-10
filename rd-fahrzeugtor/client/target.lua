@@ -1,9 +1,12 @@
 local RegisteredZones = {}
+local RegisteredEntities = {}
 
 function RegisterGateTarget(gateId, entity)
     if not entity or not DoesEntityExist(entity) then
         return
     end
+
+    RegisteredEntities[gateId] = entity
 
     exports.ox_target:addLocalEntity(entity, {
         {
@@ -60,5 +63,19 @@ function RegisterGateInteraction(gateId, gate, entity)
 
     if entity and DoesEntityExist(entity) then
         RegisterGateTarget(gateId, entity)
+    end
+end
+
+function ClearAllGateZones()
+    for gateId, zoneId in pairs(RegisteredZones) do
+        exports.ox_target:removeZone(zoneId)
+        RegisteredZones[gateId] = nil
+    end
+
+    for gateId, entity in pairs(RegisteredEntities) do
+        if entity and DoesEntityExist(entity) then
+            exports.ox_target:removeLocalEntity(entity)
+        end
+        RegisteredEntities[gateId] = nil
     end
 end

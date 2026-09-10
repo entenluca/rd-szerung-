@@ -9,6 +9,7 @@ Realistisches Fahrzeugtor-System – speziell für **MLO-Garagentore** wie die [
 ### Features
 
 - **MLO-Modus** – bewegt die echten Tore aus dem Mapping (kein Prop-Spawn)
+- **ox_doorlock-Setup** – `/rd_tor_setup` zum Markieren von Panels und Koordinaten ingame
 - **ox_target** – Tor anwählen oder Interaktionszone in der Tor-Mitte
 - **NUI-Steuerung** – Öffnen, Stopp, Schließen mit Fortschrittsanzeige
 - **Stopp-Funktion** – Tor auf jeder Höhe anhalten
@@ -36,25 +37,35 @@ ensure rd-fahrzeugtor
 2. Tore in `config/presets/maavim_rettungswache.lua` einrichten (siehe unten)
 3. Optional: Fernbedienungs-Item aus `install/ox_inventory_item.lua`
 
-### MaaviM Rettungswache MP einrichten
+### MaaviM Rettungswache MP einrichten (wie ox_doorlock)
 
-Die Tore werden **automatisch erkannt** – kein manuelles Hash-Auslesen nötig.
-
-1. `ensure MM_Rettungswache` vor `ensure rd-fahrzeugtor`
+1. `ensure MM_Rettungswache` **vor** `ensure rd-fahrzeugtor`
 2. `Config.UseMaavimRettungswachePreset = true` (Standard)
-3. Starte den Server – das Script scannt die Rettungswache (Postal 7324 / West Mirror Drive)
-4. Falls nötig: stell dich vor die Tore und nutze `/rd_tor_autosetup`
+3. Gehe ingame zur Rettungswache und nutze **`/rd_tor_setup`**
+4. Wähle **Tor 1 / 2 / 3** → **Panel-Auswahl starten**
+5. Schau auf ein Tor-Panel und drücke **E** (markiert alle gestapelten Panels desselben Modells)
+6. Schau auf die gewünschte Interaktionsstelle und drücke **G** (ox_target-Zone)
+7. Drücke **H** für die Hubhöhe (Standard: 4,2 m)
+8. **ENTER** zum Speichern → Konfiguration landet in `data/gates.json`
 
-**MLO woanders platziert?** Passe in `config/presets/maavim_rettungswache.lua` nur `Config.AutoSetup.center` an.
+Die gespeicherten Koordinaten werden beim Serverstart und für alle Spieler automatisch geladen.
 
-**Manuell einrichten** (falls Auto-Setup nicht greift): `/rd_tor_scan 4` und `/rd_tor_copy`
+**Schnell-Bindung** (Alternative): `/rd_tor_bind 1` – schau auf ein Panel, bindet und speichert direkt.
 
-### Scanner-Befehle
+**Bewegung testen**: `/rd_tor_test` – prüft ob das angeschaute Objekt bewegt werden kann.
+
+**MLO woanders platziert?** Einmal `/rd_tor_setup` nutzen – keine Config-Datei anpassen nötig.
+
+### Setup- & Scanner-Befehle
 
 | Befehl | Beschreibung |
 |--------|--------------|
+| `/rd_tor_setup` | Tor-Editor wie ox_doorlock (Panels + Koordinaten) |
+| `/rd_tor_bind [1-3]` | Schnell-Bindung eines Tores |
+| `/rd_tor_test` | Bewegungstest für angeschautes Objekt |
 | `/rd_tor_scan [radius]` | Listet nahe Objekte mit Modell-Hash in F8 |
 | `/rd_tor_copy` | Gibt aktuelle Position als `vec4` aus |
+| `/rd_tor_status` | Zeigt Bindungsstatus aller Tore in F8 |
 
 ### Steuerung
 

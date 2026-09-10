@@ -30,6 +30,10 @@ Config.UseOxLibSelector = true
 -- Hinweis beim Start zur Tor-Bindung
 Config.ShowSetupHint = true
 
+-- ACE-Berechtigung für /rd_tor_setup (nil = jeder)
+-- Beispiel in server.cfg: add_ace group.admin rd_fahrzeugtor.setup allow
+Config.SetupAce = nil
+
 -- Soll die Fernbedienung auch aus Fahrzeugen funktionieren?
 Config.RemoteFromVehicle = true
 

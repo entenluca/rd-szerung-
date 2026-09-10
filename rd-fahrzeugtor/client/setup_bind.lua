@@ -119,6 +119,36 @@ function BindGatePanels(gateId, stack)
     RegisterGateZone(gateId, gateConfig)
 
     TriggerServerEvent('rd-fahrzeugtor:syncGateBind', gateConfig)
+
+    local allGates = {}
+    for _, gate in ipairs(Config.Gates) do
+        local panels = {}
+        for _, panel in ipairs(gate.panels or {}) do
+            panels[#panels + 1] = {
+                model = panel.model,
+                searchCoords = { x = panel.searchCoords.x, y = panel.searchCoords.y, z = panel.searchCoords.z },
+                searchRadius = panel.searchRadius or 3.0,
+            }
+        end
+
+        allGates[#allGates + 1] = {
+            id = gate.id,
+            label = gate.label,
+            mode = gate.mode or 'mlo',
+            closed = gate.closed and { x = gate.closed.x, y = gate.closed.y, z = gate.closed.z, w = gate.closed.w },
+            travel = gate.travel or 4.2,
+            moveAxis = gate.moveAxis or 'z',
+            speed = gate.speed or 0.9,
+            panels = panels,
+            remoteRange = gate.remoteRange or 35.0,
+            target = gate.target and {
+                coords = { x = gate.target.coords.x, y = gate.target.coords.y, z = gate.target.coords.z },
+                radius = gate.target.radius or 2.5,
+            },
+        }
+    end
+
+    TriggerServerEvent('rd-fahrzeugtor:saveGates', allGates)
     return true
 end
 
@@ -169,7 +199,7 @@ local function bindGateAtPlayer(gateIndex)
     lib.notify({
         title = 'Tor-Bindung',
         description = moved
-            and ('Tor %d gebunden (%d Panel(s)s) – Bewegung OK'):format(gateIndex, #stack)
+            and ('Tor %d gebunden (%d Panel(s)) – Bewegung OK'):format(gateIndex, #stack)
             or ('Tor %d gebunden, aber Panel bewegt sich nicht – evtl. festes MLO-Mesh'):format(gateIndex),
         type = moved and 'success' or 'warning',
         duration = 10000,
@@ -192,8 +222,16 @@ RegisterNetEvent('rd-fahrzeugtor:applyGateBind', function(gateConfig)
         end
     end
 
+    local gateData = GetGateData(gateConfig.id)
+    if not gateData then
+        return
+    end
+
+    gateData.config = existing or gateConfig
+
     if gateConfig.panels and #gateConfig.panels > 0 then
-        TryResolveMloGate(gateConfig.id, gateConfig, GetGateData(gateConfig.id) or { config = gateConfig })
+        TryResolveMloGate(gateConfig.id, gateData.config, gateData)
+        RegisterGateTarget(gateConfig.id, gateData.entity)
     end
 end)
 

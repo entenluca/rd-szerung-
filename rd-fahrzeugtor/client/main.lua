@@ -317,7 +317,7 @@ function OpenGateUI(gateId)
     end
 
     if IsMloGate(gateData.config) and not gateData.bound then
-        notify('Fahrzeugtor', 'Tor noch nicht gebunden. Schau auf das Panel und nutze /rd_tor_bind', 'error')
+        notify('Fahrzeugtor', 'Tor noch nicht eingerichtet. Nutze /rd_tor_setup (wie ox_doorlock)', 'error')
         return
     end
 
@@ -372,6 +372,29 @@ end
 local function registerGate(gateId, gate, gateData)
     Gates[gateId] = gateData
     RegisterGateInteraction(gateId, gate, gateData.entity)
+end
+
+function ReloadAllGates(gatesData)
+    CloseGateUI()
+
+    for _, gateData in pairs(Gates) do
+        if IsMloGate(gateData.config) then
+            CleanupMloGate(gateData)
+        elseif gateData.entity and DoesEntityExist(gateData.entity) then
+            DeleteEntity(gateData.entity)
+        end
+    end
+
+    ClearAllGateZones()
+    Gates = {}
+
+    Config.Gates = {}
+    for _, gateData in ipairs(gatesData) do
+        Config.Gates[#Config.Gates + 1] = DeserializeGateFromNetwork(gateData)
+    end
+
+    initializeConfiguredGates()
+    TriggerServerEvent('rd-fahrzeugtor:requestInit')
 end
 
 function RegisterDiscoveredGate(gate, panelEntities)
@@ -492,11 +515,12 @@ CreateThread(function()
     initializeConfiguredGates()
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
     TriggerServerEvent('rd-fahrzeugtor:requestGateBinds')
+    TriggerServerEvent('rd-fahrzeugtor:requestSavedGates')
 
     if Config.ShowSetupHint then
         lib.notify({
             title = 'Fahrzeugtor',
-            description = 'Tore binden: Schau auf Panel → /rd_tor_bind 1 (2, 3)',
+            description = 'Tore einrichten wie ox_doorlock: /rd_tor_setup',
             type = 'inform',
             duration = 12000,
         })

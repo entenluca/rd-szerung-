@@ -51,7 +51,6 @@ local function handleAction(gateId, action)
 end
 
 RegisterNetEvent('rd-fahrzeugtor:requestAction', function(gateId, action)
-    local source = source
     if type(gateId) ~= 'string' or type(action) ~= 'string' then
         return
     end
@@ -82,12 +81,27 @@ RegisterNetEvent('rd-fahrzeugtor:requestInit', function()
     TriggerClientEvent('rd-fahrzeugtor:initGates', source, GateStatesServer)
 end)
 
+lib.callback.register('rd-fahrzeugtor:canSetup', function(source)
+    if not Config.SetupAce then
+        return true
+    end
+    return IsPlayerAceAllowed(source, Config.SetupAce)
+end)
+
 AddEventHandler('onResourceStart', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
     end
 
+    if LoadSavedGates() then
+        print(('[rd-fahrzeugtor] %d gespeicherte Tore aus data/gates.json geladen'):format(#Config.Gates))
+    end
+
     initGateStates()
 end)
+
+if LoadSavedGates() then
+    print(('[rd-fahrzeugtor] %d gespeicherte Tore aus data/gates.json geladen'):format(#Config.Gates))
+end
 
 initGateStates()

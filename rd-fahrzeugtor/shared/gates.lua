@@ -102,3 +102,45 @@ end
 function IsMloGate(gate)
     return gate.mode == 'mlo'
 end
+
+local function vec3FromTable(t)
+    if not t then return nil end
+    return vec3(t.x or 0.0, t.y or 0.0, t.z or 0.0)
+end
+
+local function vec4FromTable(t)
+    if not t then return nil end
+    return vec4(t.x or 0.0, t.y or 0.0, t.z or 0.0, t.w or 0.0)
+end
+
+function DeserializeGateFromNetwork(data)
+    local panels = {}
+    for _, panel in ipairs(data.panels or {}) do
+        panels[#panels + 1] = {
+            model = panel.model,
+            searchCoords = vec3FromTable(panel.searchCoords),
+            searchRadius = panel.searchRadius or 3.0,
+        }
+    end
+
+    local gate = {
+        id = data.id,
+        label = data.label,
+        mode = data.mode or 'mlo',
+        closed = vec4FromTable(data.closed),
+        travel = data.travel or 4.2,
+        moveAxis = data.moveAxis or 'z',
+        speed = data.speed or 0.9,
+        panels = panels,
+        remoteRange = data.remoteRange or 35.0,
+    }
+
+    if data.target and data.target.coords then
+        gate.target = {
+            coords = vec3FromTable(data.target.coords),
+            radius = data.target.radius or 2.5,
+        }
+    end
+
+    return gate
+end
