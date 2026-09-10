@@ -1,3 +1,26 @@
+local function openSelectorMenu(gates)
+    local options = {}
+
+    for _, gate in ipairs(gates) do
+        options[#options + 1] = {
+            title = gate.label,
+            description = ('%s · %.0fm'):format(gate.progressLabel, gate.distance),
+            icon = 'warehouse',
+            onSelect = function()
+                OpenGateUI(gate.id)
+            end,
+        }
+    end
+
+    lib.registerContext({
+        id = 'rd_fahrzeugtor_selector',
+        title = 'Tor-Fernbedienung',
+        options = options,
+    })
+
+    lib.showContext('rd_fahrzeugtor_selector')
+end
+
 RegisterNetEvent('rd-fahrzeugtor:useRemote', function()
     OpenGateSelector()
 end)
@@ -27,3 +50,13 @@ RegisterCommand('rd_tor_remote', function()
 end, false)
 
 RegisterKeyMapping('rd_tor_remote', 'Tor-Fernbedienung benutzen', 'keyboard', 'F6')
+
+-- ox_lib Menü als Fallback, falls NUI Probleme macht
+function OpenGateSelectorMenu()
+    local gates = GetGatesInRange(Config.RemoteRange)
+    if #gates == 0 then
+        lib.notify({ title = 'Tor-Fernbedienung', description = 'Kein Tor in Reichweite.', type = 'error' })
+        return
+    end
+    openSelectorMenu(gates)
+end

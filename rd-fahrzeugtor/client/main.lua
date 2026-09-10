@@ -119,7 +119,9 @@ local function updateGateEntityTransform(gateData)
     local gate = gateData.config
 
     if IsMloGate(gate) then
-        UpdateMloGateTransform(gateData, gateData.progress, IsGateMoving(gateData.state))
+        if gateData.bound and gateData.panels and #gateData.panels > 0 then
+            UpdateMloGateTransform(gateData, gateData.progress, IsGateMoving(gateData.state))
+        end
         return
     end
 
@@ -289,6 +291,11 @@ function OpenGateSelector()
         return
     end
 
+    if Config.UseOxLibSelector then
+        OpenGateSelectorMenu()
+        return
+    end
+
     ActiveGateId = nil
     SetNuiFocus(true, true)
 
@@ -306,6 +313,11 @@ function OpenGateUI(gateId)
 
     local gateData = Gates[gateId]
     if not gateData then
+        return
+    end
+
+    if IsMloGate(gateData.config) and not gateData.bound then
+        notify('Fahrzeugtor', 'Tor noch nicht gebunden. Schau auf das Panel und nutze /rd_tor_bind', 'error')
         return
     end
 
@@ -395,6 +407,7 @@ function RegisterDiscoveredGate(gate, panelEntities)
         SecureMloPanel(panel.entity, true)
     end
 
+    gateData.bound = true
     registerGate(gate.id, gate, gateData)
 end
 
@@ -453,16 +466,20 @@ local function initializeConfiguredGates()
         ::continue::
     end
 
-    WaitForMloGates(Gates, function(gateId, gateData)
+    for gateId, gateData in pairs(Gates) do
         local gate = gateData.config
-        if gateData.warningLight then
-            gateData.warningLight = ResolveMloWarningLight(gate) or gateData.warningLight
-        else
-            gateData.warningLight = ResolveMloWarningLight(gate)
+        if gate.panels and #gate.panels > 0 then
+            WaitForMloGates({ [gateId] = gateData }, function(resolvedId, resolvedData)
+                resolvedData.bound = true
+                if resolvedData.warningLight then
+                    resolvedData.warningLight = ResolveMloWarningLight(gate) or resolvedData.warningLight
+                else
+                    resolvedData.warningLight = ResolveMloWarningLight(gate)
+                end
+                RegisterGateTarget(resolvedId, resolvedData.entity)
+            end)
         end
-
-        RegisterGateTarget(gateId, gateData.entity)
-    end)
+    end
 end
 
 CreateThread(function()
@@ -472,19 +489,11 @@ CreateThread(function()
 
     initializeConfiguredGates()
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
-end)
 
--- Verhindert, dass MLO-Tore von GTA automatisch aufgehen
-CreateThread(function()
-    while true do
-        for _, gateData in pairs(Gates) do
-            if IsMloGate(gateData.config) and gateData.panels and #gateData.panels > 0 then
-                if not IsGateMoving(gateData.state) then
-                    UpdateMloGateTransform(gateData, gateData.progress, false)
-                end
-            end
-        end
-
-        Wait(400)
-    end
+    lib.notify({
+        title = 'Fahrzeugtor',
+        description = 'Tore binden: Schau auf Panel → /rd_tor_bind 1 (2, 3)',
+        type = 'inform',
+        duration = 12000,
+    })
 end)

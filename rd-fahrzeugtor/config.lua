@@ -24,6 +24,12 @@ Config.RemoteRange = 30.0
 -- Fernbedienung zeigt immer das Tor-Auswahl-Panel (auch bei nur 1 Tor)
 Config.RemoteAlwaysShowSelector = true
 
+-- Tor-Auswahl über ox_lib Menü statt NUI (stabiler)
+Config.UseOxLibSelector = true
+
+-- Hinweis beim Start zur Tor-Bindung
+Config.ShowSetupHint = true
+
 -- Soll die Fernbedienung auch aus Fahrzeugen funktionieren?
 Config.RemoteFromVehicle = true
 

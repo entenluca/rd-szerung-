@@ -14,7 +14,7 @@ end
 Config.MloResource = 'MM_Rettungswache'
 
 Config.AutoSetup = {
-    enabled = true,
+    enabled = false,
     center = vec3(1048.39, -790.47, 31.5),
     radius = 45.0,
     expectedGates = 3,

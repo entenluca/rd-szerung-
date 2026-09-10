@@ -4,7 +4,7 @@ game 'gta5'
 name 'rd-fahrzeugtor'
 description 'Realistisches Fahrzeugtor-System mit ox_target, UI-Steuerung, Fernbedienung, Sounds und Warnleuchte'
 author 'RD-Szene'
-version '1.1.0'
+version '1.2.1'
 
 lua54 'yes'
 
@@ -25,6 +25,7 @@ client_scripts {
     'client/nui.lua',
     'client/remote.lua',
     'client/dev.lua',
+    'client/setup_bind.lua',
 }
 
 server_scripts {
