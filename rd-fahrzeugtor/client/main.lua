@@ -80,7 +80,7 @@ end
 
 local function spawnWarningLight(gate, gateEntity)
     local lightConfig = gate.warningLight
-    if not lightConfig then
+    if not lightConfig or lightConfig.mode == 'mlo' then
         return nil
     end
 
@@ -117,11 +117,17 @@ end
 
 local function updateGateEntityTransform(gateData)
     local gate = gateData.config
+
+    if IsMloGate(gate) then
+        UpdateMloGateTransform(gateData, gateData.progress)
+        return
+    end
+
     local pos, heading = CalculateGateTransform(gate, gateData.progress)
     SetEntityCoordsNoOffset(gateData.entity, pos.x, pos.y, pos.z, false, false, false)
     SetEntityHeading(gateData.entity, heading)
 
-    if gateData.warningLight and gate.warningLight then
+    if gateData.warningLight and gate.warningLight and gate.warningLight.mode ~= 'mlo' then
         local offset = gate.warningLight.offset or vec3(0.0, 0.0, 2.0)
         SetEntityCoordsNoOffset(
             gateData.warningLight,
@@ -150,10 +156,7 @@ local function ensureAnimationThread()
                     local gate = gateData.config
                     local distance = gate.speed * GetFrameTime()
                     local direction = gateData.state == GateStates.OPENING and 1.0 or -1.0
-
-                    local closed = gate.closed
-                    local open = gate.open
-                    local totalDistance = #(vector3(closed.x, closed.y, closed.z) - vector3(open.x, open.y, open.z))
+                    local totalDistance = GetGateTravelDistance(gate)
 
                     if totalDistance > 0.0 then
                         local delta = (distance / totalDistance) * direction
@@ -264,6 +267,22 @@ function RequestGateAction(gateId, action)
     TriggerServerEvent('rd-fahrzeugtor:requestAction', gateId, action)
 end
 
+local function createGateData(gate, entity, warningLight)
+    return {
+        config = gate,
+        entity = entity,
+        panels = {},
+        warningLight = warningLight,
+        state = GateStates.CLOSED,
+        progress = 0.0,
+    }
+end
+
+local function registerGate(gateId, gate, gateData)
+    Gates[gateId] = gateData
+    RegisterGateInteraction(gateId, gate, gateData.entity)
+end
+
 RegisterNetEvent('rd-fahrzeugtor:applyState', function(gateId, state, progress)
     applyGateState(gateId, state, progress)
 end)
@@ -285,31 +304,45 @@ AddEventHandler('onResourceStop', function(resourceName)
     CloseGateUI()
 
     for _, gateData in pairs(Gates) do
-        if gateData.entity and DoesEntityExist(gateData.entity) then
-            DeleteEntity(gateData.entity)
-        end
-        if gateData.warningLight and DoesEntityExist(gateData.warningLight) then
-            DeleteEntity(gateData.warningLight)
+        if not IsMloGate(gateData.config) then
+            if gateData.entity and DoesEntityExist(gateData.entity) then
+                DeleteEntity(gateData.entity)
+            end
+            if gateData.warningLight and DoesEntityExist(gateData.warningLight) then
+                DeleteEntity(gateData.warningLight)
+            end
         end
     end
 end)
 
 CreateThread(function()
-    for _, gate in ipairs(Config.Gates) do
-        local entity = spawnGateEntity(gate)
-        if entity then
-            local gateData = {
-                config = gate,
-                entity = entity,
-                warningLight = spawnWarningLight(gate, entity),
-                state = GateStates.CLOSED,
-                progress = 0.0,
-            }
+    if Config.MloResource and GetResourceState(Config.MloResource) == 'missing' then
+        print(('[rd-fahrzeugtor] Hinweis: MLO-Ressource "%s" nicht gefunden – stelle sicher, dass sie gestartet ist.'):format(Config.MloResource))
+    end
 
-            Gates[gate.id] = gateData
-            RegisterGateTarget(gate.id, entity)
+    for _, gate in ipairs(Config.Gates) do
+        if IsMloGate(gate) then
+            local gateData = createGateData(gate, nil, nil)
+            registerGate(gate.id, gate, gateData)
+        else
+            local entity = spawnGateEntity(gate)
+            if entity then
+                local gateData = createGateData(gate, entity, spawnWarningLight(gate, entity))
+                registerGate(gate.id, gate, gateData)
+            end
         end
     end
+
+    WaitForMloGates(Gates, function(gateId, gateData)
+        local gate = gateData.config
+        if gateData.warningLight then
+            gateData.warningLight = ResolveMloWarningLight(gate) or gateData.warningLight
+        else
+            gateData.warningLight = ResolveMloWarningLight(gate)
+        end
+
+        RegisterGateTarget(gateId, gateData.entity)
+    end)
 
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
 end)

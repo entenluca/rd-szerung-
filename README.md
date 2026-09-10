@@ -4,82 +4,100 @@ FiveM-Skripte für Rettungsdienst-, Feuerwehr- und Polizei-RP.
 
 ## rd-fahrzeugtor
 
-Realistisches Fahrzeugtor-System mit:
+Realistisches Fahrzeugtor-System – speziell für **MLO-Garagentore** wie die [MaaviM Rettungswache MP](https://store.maavim-modding.com/product/rettungswache-mp).
 
-- **ox_target** – Tor mit dem Auge anwählen und Steuerungs-UI öffnen
-- **UI-Steuerung** – Öffnen, Stopp, Schließen (Stopp hält das Tor auf jeder Höhe an)
-- **Fernbedienung** – Tor aus der Ferne oder direkt aus dem Fahrzeug steuern
-- **Sounds** – Torgeräusche während der Bewegung (GTA-native Sounds)
-- **Warnleuchte** – Blinkt automatisch, solange sich das Tor bewegt
+### Features
+
+- **MLO-Modus** – bewegt die echten Tore aus dem Mapping (kein Prop-Spawn)
+- **ox_target** – Tor anwählen oder Interaktionszone in der Tor-Mitte
+- **NUI-Steuerung** – Öffnen, Stopp, Schließen mit Fortschrittsanzeige
+- **Stopp-Funktion** – Tor auf jeder Höhe anhalten
+- **Fernbedienung** – Item oder `F6`, auch aus Fahrzeugen
+- **Sounds** – Torgeräusche während der Bewegung
+- **Warnleuchte** – nutzt die roten Leuchten am MLO (blinkt bei Bewegung)
 
 ### Abhängigkeiten
 
 - [ox_lib](https://github.com/overextended/ox_lib)
 - [ox_target](https://github.com/overextended/ox_target)
-- [ox_inventory](https://github.com/overextended/ox_inventory) (optional, für Fernbedienungs-Item)
+- MaaviM MLO-Ressource (z. B. `MM_Rettungswache`)
+- [ox_inventory](https://github.com/overextended/ox_inventory) (optional)
 
 ### Installation
 
-1. Ordner `rd-fahrzeugtor` in deinen `resources`-Ordner kopieren
-2. In `server.cfg` eintragen:
-   ```
-   ensure ox_lib
-   ensure ox_target
-   ensure rd-fahrzeugtor
-   ```
-3. Tore in `rd-fahrzeugtor/config.lua` konfigurieren (Koordinaten anpassen!)
-4. Optional: Fernbedienungs-Item aus `rd-fahrzeugtor/install/ox_inventory_item.lua` in ox_inventory einfügen
-
-### Tore konfigurieren
-
-In `config.lua` jedes Tor mit geschlossener und geöffneter Position definieren:
-
-```lua
-{
-    id = 'feuerwache_haupttor',
-    label = 'Haupttor Feuerwache',
-    model = `prop_ind_mech_01c`,
-    closed = vec4(x, y, z, heading),
-    open = vec4(x, y, z + 3.7, heading),  -- z.B. 3.7m nach oben
-    moveAxis = 'z',
-    speed = 0.85,
-    warningLight = {
-        model = `prop_warninglight_01`,
-        offset = vec3(0.0, 0.0, 2.2),
-        rot = vec3(0.0, 0.0, heading),
-    },
-    remoteRange = 35.0,
-}
+```cfg
+ensure ox_lib
+ensure ox_target
+ensure MM_Rettungswache        # dein MaaviM MLO
+ensure rd-fahrzeugtor
 ```
 
-**Tipp:** Koordinaten ingame mit `/coords` oder einem Admin-Tool auslesen.
+1. In `config.lua`: `Config.UseMaavimRettungswachePreset = true`
+2. Tore in `config/presets/maavim_rettungswache.lua` einrichten (siehe unten)
+3. Optional: Fernbedienungs-Item aus `install/ox_inventory_item.lua`
+
+### MaaviM Rettungswache MP einrichten
+
+Die Tore und Warnleuchten sind **Teil des MLO** – du musst einmalig die Modell-Hashes und Koordinaten auslesen:
+
+1. Gehe zur Rettungswache (wie auf deinem Screenshot)
+2. Stelle dich vor ein **geschlossenes** Tor-Panel
+3. Führe aus: `/rd_tor_scan 4`
+4. In der **F8-Konsole** siehst du Modell-Hash und Koordinaten
+5. Trage diese in `panels` ein:
+
+```lua
+panels = {
+    { model = `1234567890`, searchCoords = vec3(x, y, z), searchRadius = 2.5 },
+    -- bei Sektionaltoren oft mehrere Panels pro Tor
+},
+```
+
+6. Stelle dich in die **Mitte des Tores** → `/rd_tor_copy` für `closed` und `target.coords`
+7. Passe `travel` an (Hubhöhe, meist **3.5–4.2** Meter bei Sektionaltoren)
+8. Warnleuchte: mit `/rd_tor_scan` die rote Leuchte neben dem Tor finden:
+
+```lua
+warningLight = {
+    mode = 'mlo',
+    model = `WARNLEUCHTEN_HASH`,
+    searchCoords = vec3(x, y, z),
+    searchRadius = 1.5,
+},
+```
+
+9. Wiederhole für Tor 2 und Tor 3
+
+### Scanner-Befehle
+
+| Befehl | Beschreibung |
+|--------|--------------|
+| `/rd_tor_scan [radius]` | Listet nahe Objekte mit Modell-Hash in F8 |
+| `/rd_tor_copy` | Gibt aktuelle Position als `vec4` aus |
 
 ### Steuerung
 
 | Aktion | Beschreibung |
 |--------|--------------|
-| ox_target am Tor | Öffnet die Steuerungs-UI |
-| **Öffnen** | Tor fährt nach oben (oder in konfigurierte Richtung) |
-| **Stopp** | Tor bleibt exakt an der aktuellen Position stehen |
-| **Schließen** | Tor fährt zurück in geschlossene Position |
-| `F6` | Fernbedienung (wenn Item vorhanden oder ohne ox_inventory) |
+| ox_target am Tor / in der Zone | Steuerungs-UI öffnen |
+| **Öffnen / Stopp / Schließen** | Tor steuern |
+| `F6` | Fernbedienung |
 | `ESC` | UI schließen |
 
-### Job-Beschränkung
+### Eigenes MLO / andere Tore
 
-In `config.lua` optional einschränken:
+Setze `Config.UseMaavimRettungswachePreset = false` und definiere `Config.Gates` manuell:
 
 ```lua
-Config.AllowedJobs = {
-    ambulance = 0,
-    police = 0,
-    fire = 0,
+{
+    id = 'mein_tor',
+    label = 'Garagentor',
+    mode = 'mlo',           -- oder 'spawn' für eigene Props
+    closed = vec4(x, y, z, heading),
+    travel = 3.8,
+    moveAxis = 'z',
+    speed = 0.9,
+    panels = { ... },
+    target = { coords = vec3(x, y, z), radius = 2.5 },
 }
-```
-
-### Export für andere Scripts
-
-```lua
-exports['rd-fahrzeugtor']:openNearestGate()
-exports['rd-fahrzeugtor']:useRemote()
 ```

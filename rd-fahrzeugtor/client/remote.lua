@@ -11,8 +11,18 @@ local function findNearestGate(maxRange)
     local nearestId, nearestDist
 
     for gateId, gateData in pairs(GetAllGates()) do
-        local gateCoords = GetEntityCoords(gateData.entity)
-        local range = gateData.config.remoteRange or maxRange or Config.RemoteRange
+        local gate = gateData.config
+        local gateCoords
+
+        if gateData.entity and DoesEntityExist(gateData.entity) then
+            gateCoords = GetEntityCoords(gateData.entity)
+        elseif gate.target and gate.target.coords then
+            gateCoords = gate.target.coords
+        else
+            gateCoords = vector3(gate.closed.x, gate.closed.y, gate.closed.z)
+        end
+
+        local range = gate.remoteRange or maxRange or Config.RemoteRange
         local dist = #(playerCoords - gateCoords)
 
         if dist <= range and (not nearestDist or dist < nearestDist) then

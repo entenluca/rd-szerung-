@@ -3,6 +3,16 @@ Config = {}
 -- Sprache für ox_lib Benachrichtigungen
 Config.Locale = 'de'
 
+-- Debug-Modus für ox_target Zonen
+Config.Debug = false
+
+-- MaaviM Rettungswache MP Preset aktivieren?
+-- Setze auf true und passe config/presets/maavim_rettungswache.lua an
+Config.UseMaavimRettungswachePreset = true
+
+-- Name der MLO-Ressource (nur Hinweis/Check beim Start)
+Config.MloResource = 'MM_Rettungswache'
+
 -- Item-Name für die Fernbedienung (ox_inventory)
 Config.RemoteItem = 'tor_fernbedienung'
 
@@ -23,33 +33,21 @@ Config.SoundVolume = 0.65
 Config.WarningLightBlinkMs = 450
 
 --[[
-    Tor-Konfiguration
+    Tor-Modi:
+    - mode = 'mlo'   → vorhandene MLO-Tore finden und bewegen (MaaviM Rettungswache etc.)
+    - mode = 'spawn' → Prop selbst spawnen (Standard wenn mode fehlt)
 
-    Jedes Tor benötigt:
-    - id: Eindeutige Kennung
-    - label: Anzeigename in der UI
-    - model: GTA Prop-Modell für das Tor
-    - closed / open: Position und Rotation (vec4: x, y, z, w=heading)
-    - moveAxis: 'z' (hoch/runter), 'x' oder 'y' (schieben)
-    - speed: Bewegungsgeschwindigkeit (Meter pro Sekunde)
-    - warningLight: optionale Warnleuchte am Tor
-    - remoteRange: optionale individuelle Fernbedienungs-Reichweite
+    MLO-Tor Felder:
+    - panels: Liste mit { model, searchCoords, searchRadius } – je Sektional-Panel
+    - closed: vec4 Referenzposition (Mitte des Tores, geschlossen)
+    - travel: Hubhöhe in Metern (Alternative zu open)
+    - target: ox_target SphereZone { coords, radius } – funktioniert immer
+    - warningLight.mode = 'mlo' → vorhandene Warnleuchte im MLO finden
+
+    Scanner-Befehle (ingame):
+    - /rd_tor_scan [radius]  → zeigt Modell-Hashes naher Objekte in F8
+    - /rd_tor_copy           → aktuelle Position als vec4
 ]]
 Config.Gates = {
-    {
-        id = 'feuerwache_haupttor',
-        label = 'Haupttor Feuerwache',
-        model = `prop_ind_mech_01c`,
-        closed = vec4(215.45, -1645.12, 29.80, 320.0),
-        open = vec4(215.45, -1645.12, 33.50, 320.0),
-        moveAxis = 'z',
-        speed = 0.85,
-        warningLight = {
-            model = `prop_warninglight_01`,
-            offset = vec3(0.0, 0.0, 2.2),
-            rot = vec3(0.0, 0.0, 320.0),
-        },
-        remoteRange = 35.0,
-    },
-    -- Weitere Tore hier hinzufügen ...
+    -- Wird durch config/presets/maavim_rettungswache.lua überschrieben wenn Preset aktiv
 }

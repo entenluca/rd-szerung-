@@ -6,7 +6,17 @@ local function getGateCoords(gateId)
         return nil
     end
 
-    return GetEntityCoords(gateData.entity)
+    local gate = gateData.config
+
+    if gateData.entity and DoesEntityExist(gateData.entity) then
+        return GetEntityCoords(gateData.entity)
+    end
+
+    if gate.target and gate.target.coords then
+        return gate.target.coords
+    end
+
+    return vector3(gate.closed.x, gate.closed.y, gate.closed.z)
 end
 
 function StartGateSound(gateId)

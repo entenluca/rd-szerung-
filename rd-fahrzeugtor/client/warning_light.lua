@@ -15,12 +15,13 @@ function StartWarningLight(gateId)
     CreateThread(function()
         local visible = true
         while ActiveLights[gateId] do
-            if DoesEntityExist(gateData.warningLight) then
+            local lightEntity = gateData.warningLight
+            if lightEntity and DoesEntityExist(lightEntity) then
                 visible = not visible
-                SetEntityAlpha(gateData.warningLight, visible and 255 or 40, false)
+                SetEntityAlpha(lightEntity, visible and 255 or 60, false)
 
-                local coords = GetEntityCoords(gateData.warningLight)
-                DrawLightWithRange(coords.x, coords.y, coords.z + 0.15, 255, 40, 0, 4.5, 2.0)
+                local coords = GetEntityCoords(lightEntity)
+                DrawLightWithRange(coords.x, coords.y, coords.z + 0.1, 255, 30, 0, 5.0, 2.5)
             end
             Wait(Config.WarningLightBlinkMs)
         end
@@ -36,6 +37,6 @@ function StopWarningLight(gateId)
 
     local gateData = GetGateData(gateId)
     if gateData and gateData.warningLight and DoesEntityExist(gateData.warningLight) then
-        SetEntityAlpha(gateData.warningLight, 80, false)
+        SetEntityAlpha(gateData.warningLight, 255, false)
     end
 end

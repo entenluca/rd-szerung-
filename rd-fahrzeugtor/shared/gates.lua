@@ -6,6 +6,26 @@ GateStates = {
     STOPPED = 'stopped',
 }
 
+---@param gate table
+---@return vector4
+function GetGateOpenPosition(gate)
+    if gate.open then
+        return gate.open
+    end
+
+    local closed = gate.closed
+    local travel = gate.travel or 3.5
+    local axis = gate.moveAxis or 'z'
+
+    if axis == 'x' then
+        return vec4(closed.x + travel, closed.y, closed.z, closed.w)
+    elseif axis == 'y' then
+        return vec4(closed.x, closed.y + travel, closed.z, closed.w)
+    end
+
+    return vec4(closed.x, closed.y, closed.z + travel, closed.w)
+end
+
 ---@param gateId string
 ---@return table|nil
 function GetGateConfig(gateId)
@@ -23,7 +43,7 @@ function CalculateGateTransform(gate, progress)
     progress = math.min(1.0, math.max(0.0, progress))
 
     local closed = gate.closed
-    local open = gate.open
+    local open = GetGateOpenPosition(gate)
 
     local x = closed.x + (open.x - closed.x) * progress
     local y = closed.y + (open.y - closed.y) * progress
@@ -36,10 +56,19 @@ end
 ---@param gate table
 ---@param progress number
 ---@return number
+function GetGateTravelDistance(gate)
+    local closed = gate.closed
+    local open = GetGateOpenPosition(gate)
+    return #(vector3(closed.x, closed.y, closed.z) - vector3(open.x, open.y, open.z))
+end
+
+---@param gate table
+---@param progress number
+---@return number
 function GetAxisValue(gate, progress)
     progress = math.min(1.0, math.max(0.0, progress))
     local closed = gate.closed
-    local open = gate.open
+    local open = GetGateOpenPosition(gate)
 
     if gate.moveAxis == 'x' then
         return closed.x + (open.x - closed.x) * progress
@@ -48,30 +77,6 @@ function GetAxisValue(gate, progress)
     end
 
     return closed.z + (open.z - closed.z) * progress
-end
-
----@param gate table
----@param coords vector3
----@return number
-function GetProgressFromCoords(gate, coords)
-    local closed = gate.closed
-    local open = gate.open
-
-    local start, target
-    if gate.moveAxis == 'x' then
-        start, target = closed.x, open.x
-        return (coords.x - start) / (target - start)
-    elseif gate.moveAxis == 'y' then
-        start, target = closed.y, open.y
-        return (coords.y - start) / (target - start)
-    end
-
-    start, target = closed.z, open.z
-    if target == start then
-        return 0.0
-    end
-
-    return (coords.z - start) / (target - start)
 end
 
 ---@param state string
@@ -90,4 +95,10 @@ function GetProgressLabel(progress)
     end
 
     return ('Teilweise geöffnet (%d%%)'):format(math.floor(progress * 100))
+end
+
+---@param gate table
+---@return boolean
+function IsMloGate(gate)
+    return gate.mode == 'mlo'
 end
