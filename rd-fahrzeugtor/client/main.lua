@@ -119,7 +119,7 @@ local function updateGateEntityTransform(gateData)
     local gate = gateData.config
 
     if IsMloGate(gate) then
-        UpdateMloGateTransform(gateData, gateData.progress)
+        UpdateMloGateTransform(gateData, gateData.progress, IsGateMoving(gateData.state))
         return
     end
 
@@ -220,6 +220,84 @@ local function applyGateState(gateId, state, progress)
     end
 end
 
+function RefreshGateSelector()
+    local gates = GetGatesInRange(Config.RemoteRange)
+    SendNUIMessage({
+        action = 'updateSelector',
+        gates = gates,
+    })
+end
+
+local function getGateCoords(gateData)
+    local gate = gateData.config
+
+    if gateData.entity and DoesEntityExist(gateData.entity) then
+        return GetEntityCoords(gateData.entity)
+    end
+
+    if gate.target and gate.target.coords then
+        return gate.target.coords
+    end
+
+    return vector3(gate.closed.x, gate.closed.y, gate.closed.z)
+end
+
+function GetGatesInRange(maxRange)
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local results = {}
+
+    for gateId, gateData in pairs(Gates) do
+        local gate = gateData.config
+        local gateCoords = getGateCoords(gateData)
+        local range = gate.remoteRange or maxRange or Config.RemoteRange
+        local distance = #(playerCoords - gateCoords)
+
+        if distance <= range then
+            results[#results + 1] = {
+                id = gateId,
+                label = gate.label,
+                state = gateData.state,
+                progress = gateData.progress,
+                progressLabel = GetProgressLabel(gateData.progress),
+                distance = distance,
+            }
+        end
+    end
+
+    table.sort(results, function(a, b)
+        return a.distance < b.distance
+    end)
+
+    return results
+end
+
+function OpenGateSelector()
+    if not canControlGate() then
+        notify('Fahrzeugtor', 'Du hast keine Berechtigung, dieses Tor zu steuern.', 'error')
+        return
+    end
+
+    local gates = GetGatesInRange(Config.RemoteRange)
+
+    if #gates == 0 then
+        notify('Tor-Fernbedienung', 'Kein Tor in Reichweite.', 'error')
+        return
+    end
+
+    if #gates == 1 and not Config.RemoteAlwaysShowSelector then
+        OpenGateUI(gates[1].id)
+        return
+    end
+
+    ActiveGateId = nil
+    SetNuiFocus(true, true)
+
+    SendNUIMessage({
+        action = 'openSelector',
+        gates = gates,
+    })
+end
+
 function OpenGateUI(gateId)
     if not canControlGate() then
         notify('Fahrzeugtor', 'Du hast keine Berechtigung, dieses Tor zu steuern.', 'error')
@@ -235,12 +313,13 @@ function OpenGateUI(gateId)
     SetNuiFocus(true, true)
 
     SendNUIMessage({
-        action = 'open',
+        action = 'openControl',
         gateId = gateId,
         label = gateData.config.label,
         state = gateData.state,
         progress = gateData.progress,
         progressLabel = GetProgressLabel(gateData.progress),
+        showBack = Config.RemoteAlwaysShowSelector or #GetGatesInRange(Config.RemoteRange) > 1,
     })
 end
 
@@ -311,6 +390,10 @@ function RegisterDiscoveredGate(gate, panelEntities)
         state = GateStates.CLOSED,
         progress = 0.0,
     }
+
+    for _, panel in ipairs(panels) do
+        SecureMloPanel(panel.entity, true)
+    end
 
     registerGate(gate.id, gate, gateData)
 end
@@ -389,4 +472,19 @@ CreateThread(function()
 
     initializeConfiguredGates()
     TriggerServerEvent('rd-fahrzeugtor:requestInit')
+end)
+
+-- Verhindert, dass MLO-Tore von GTA automatisch aufgehen
+CreateThread(function()
+    while true do
+        for _, gateData in pairs(Gates) do
+            if IsMloGate(gateData.config) and gateData.panels and #gateData.panels > 0 then
+                if not IsGateMoving(gateData.state) then
+                    UpdateMloGateTransform(gateData, gateData.progress, false)
+                end
+            end
+        end
+
+        Wait(400)
+    end
 end)

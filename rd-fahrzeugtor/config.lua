@@ -21,6 +21,9 @@ Config.RemoteItem = 'tor_fernbedienung'
 -- Maximale Reichweite der Fernbedienung (in Metern)
 Config.RemoteRange = 30.0
 
+-- Fernbedienung zeigt immer das Tor-Auswahl-Panel (auch bei nur 1 Tor)
+Config.RemoteAlwaysShowSelector = true
+
 -- Soll die Fernbedienung auch aus Fahrzeugen funktionieren?
 Config.RemoteFromVehicle = true
 

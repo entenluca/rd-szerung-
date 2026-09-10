@@ -1,11 +1,18 @@
 const app = document.getElementById('app');
+const selectorView = document.getElementById('selector-view');
+const controlView = document.getElementById('control-view');
+const gateList = document.getElementById('gate-list');
+const gateCount = document.getElementById('gate-count');
 const gateLabel = document.getElementById('gate-label');
 const gateStatus = document.getElementById('gate-status');
 const progressFill = document.getElementById('progress-fill');
 const progressLabel = document.getElementById('progress-label');
 const warningIndicator = document.getElementById('warning-indicator');
+const backBtn = document.getElementById('btn-back');
+
 let currentGateId = null;
 let currentState = 'closed';
+let showBackButton = false;
 
 function post(action, data = {}) {
     return fetch(`https://${GetParentResourceName()}/${action}`, {
@@ -15,7 +22,56 @@ function post(action, data = {}) {
     });
 }
 
-function updateUI(data) {
+function getStateClass(state) {
+    if (state === 'opening' || state === 'closing') return 'moving';
+    if (state === 'open') return 'open';
+    return 'closed';
+}
+
+function getStateText(progressLabel, state) {
+    if (progressLabel) return progressLabel;
+    if (state === 'open') return 'Geöffnet';
+    if (state === 'opening') return 'Öffnet...';
+    if (state === 'closing') return 'Schließt...';
+    if (state === 'stopped') return 'Angehalten';
+    return 'Geschlossen';
+}
+
+function renderGateList(gates) {
+    gateList.innerHTML = '';
+
+    gates.forEach((gate) => {
+        const item = document.createElement('button');
+        item.className = 'gate-item';
+        item.type = 'button';
+        item.dataset.gateId = gate.id;
+
+        const stateClass = getStateClass(gate.state);
+        const statusText = getStateText(gate.progressLabel, gate.state);
+        const percent = Math.round((gate.progress || 0) * 100);
+
+        item.innerHTML = `
+            <div class="gate-item-main">
+                <span class="gate-item-title">${gate.label}</span>
+                <span class="gate-item-distance">${Math.round(gate.distance)}m</span>
+            </div>
+            <div class="gate-item-meta">
+                <span class="gate-item-status status-${stateClass}">${statusText}</span>
+                <span class="gate-item-percent">${percent}%</span>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            post('selectGate', { gateId: gate.id });
+        });
+
+        gateList.appendChild(item);
+    });
+
+    gateCount.textContent = `${gates.length} Tor${gates.length === 1 ? '' : 'e'} in Reichweite`;
+}
+
+function updateControlUI(data) {
     if (data.label) {
         gateLabel.textContent = data.label;
     }
@@ -47,18 +103,34 @@ function updateUI(data) {
             }
         }
     }
+
+    if (typeof data.showBack === 'boolean') {
+        showBackButton = data.showBack;
+        backBtn.classList.toggle('hidden', !showBackButton);
+    }
 }
 
-function openPanel(data) {
-    currentGateId = data.gateId;
+function showSelector(gates) {
     app.classList.remove('hidden');
-    updateUI(data);
+    selectorView.classList.remove('hidden');
+    controlView.classList.add('hidden');
+    currentGateId = null;
+    renderGateList(gates || []);
+}
+
+function showControl(data) {
+    app.classList.remove('hidden');
+    selectorView.classList.add('hidden');
+    controlView.classList.remove('hidden');
+    currentGateId = data.gateId;
+    updateControlUI(data);
 }
 
 function closePanel() {
     currentGateId = null;
     app.classList.add('hidden');
-    stopSound();
+    selectorView.classList.add('hidden');
+    controlView.classList.add('hidden');
 }
 
 function sendAction(action) {
@@ -66,18 +138,12 @@ function sendAction(action) {
     post('action', { gateId: currentGateId, action });
 }
 
-function playSound() {
-    // Zusätzliche NUI-Sounds können hier ergänzt werden
-}
-
-function stopSound() {
-    // Zusätzliche NUI-Sounds können hier gestoppt werden
-}
-
 document.getElementById('btn-open').addEventListener('click', () => sendAction('open'));
 document.getElementById('btn-stop').addEventListener('click', () => sendAction('stop'));
 document.getElementById('btn-close-gate').addEventListener('click', () => sendAction('close'));
 document.getElementById('btn-close').addEventListener('click', () => post('close'));
+document.getElementById('btn-close-selector').addEventListener('click', () => post('close'));
+document.getElementById('btn-back').addEventListener('click', () => post('backToSelector'));
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -89,20 +155,27 @@ window.addEventListener('message', (event) => {
     const data = event.data;
 
     switch (data.action) {
+        case 'openSelector':
+            showSelector(data.gates);
+            break;
+        case 'updateSelector':
+            if (!selectorView.classList.contains('hidden')) {
+                renderGateList(data.gates || []);
+            }
+            break;
+        case 'openControl':
         case 'open':
-            openPanel(data);
+            showControl(data);
             break;
         case 'close':
             closePanel();
             break;
         case 'updateState':
-            updateUI(data);
+            updateControlUI(data);
             break;
         case 'playLoop':
-            playSound(data.volume);
             break;
         case 'stopLoop':
-            stopSound();
             break;
     }
 });

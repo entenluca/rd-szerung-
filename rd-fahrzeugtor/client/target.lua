@@ -12,7 +12,12 @@ function RegisterGateTarget(gateId, entity)
             label = 'Tor steuern',
             distance = 2.5,
             onSelect = function()
-                OpenGateUI(gateId)
+                local gatesInRange = GetGatesInRange(8.0)
+                if #gatesInRange > 1 then
+                    OpenGateSelector()
+                else
+                    OpenGateUI(gateId)
+                end
             end,
         },
     })
@@ -38,7 +43,12 @@ function RegisterGateZone(gateId, gate)
                 icon = 'fa-solid fa-warehouse',
                 label = 'Tor steuern',
                 onSelect = function()
-                    OpenGateUI(gateId)
+                    local gatesInRange = GetGatesInRange(8.0)
+                    if #gatesInRange > 1 then
+                        OpenGateSelector()
+                    else
+                        OpenGateUI(gateId)
+                    end
                 end,
             },
         },

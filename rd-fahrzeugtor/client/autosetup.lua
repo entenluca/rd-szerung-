@@ -294,6 +294,7 @@ function RunMloAutoSetup(setup)
 
     AutoSetupDone = true
     TriggerServerEvent('rd-fahrzeugtor:registerDiscoveredGates', gates)
+    TriggerServerEvent('rd-fahrzeugtor:requestInit')
 
     print(('[rd-fahrzeugtor] Auto-Setup: %d Garagentore erkannt'):format(#gates))
     lib.notify({

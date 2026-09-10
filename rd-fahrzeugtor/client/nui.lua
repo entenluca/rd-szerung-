@@ -10,6 +10,18 @@ RegisterNUICallback('action', function(data, cb)
     cb('ok')
 end)
 
+RegisterNUICallback('selectGate', function(data, cb)
+    if data.gateId then
+        OpenGateUI(data.gateId)
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('backToSelector', function(_, cb)
+    OpenGateSelector()
+    cb('ok')
+end)
+
 RegisterCommand('rd_tor_close', function()
     CloseGateUI()
 end, false)

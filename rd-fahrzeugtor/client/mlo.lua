@@ -24,6 +24,22 @@ local function findAllObjectsAt(model, coords, radius)
     return found
 end
 
+function SecureMloPanel(entity, frozen)
+    if not entity or not DoesEntityExist(entity) then
+        return
+    end
+
+    SetEntityAsMissionEntity(entity, true, true)
+    SetEntityInvincible(entity, true)
+    FreezeEntityPosition(entity, frozen == true)
+end
+
+function SecureMloGatePanels(gateData, frozen)
+    for _, panel in ipairs(gateData.panels or {}) do
+        SecureMloPanel(panel.entity, frozen)
+    end
+end
+
 ---@param gate table
 ---@return table[]
 function ResolveMloPanels(gate)
@@ -61,6 +77,8 @@ function ResolveMloPanels(gate)
                 closedCoords = closedCoords,
                 closedHeading = closedHeading,
             }
+
+            SecureMloPanel(entity, true)
         end
     end
 
@@ -85,20 +103,28 @@ end
 
 ---@param gateData table
 ---@param progress number
-function UpdateMloGateTransform(gateData, progress)
+---@param moving boolean
+function UpdateMloGateTransform(gateData, progress, moving)
     local gate = gateData.config
     local referenceClosed = vector3(gate.closed.x, gate.closed.y, gate.closed.z)
     local currentRef = CalculateGateTransform(gate, progress)
     local delta = currentRef - referenceClosed
-    local _, heading = CalculateGateTransform(gate, progress)
 
     for _, panel in ipairs(gateData.panels or {}) do
         if panel.entity and DoesEntityExist(panel.entity) then
+            if moving then
+                SecureMloPanel(panel.entity, false)
+            end
+
             local pos = panel.closedCoords + delta
             SetEntityCoordsNoOffset(panel.entity, pos.x, pos.y, pos.z, false, false, false)
 
             if panel.closedHeading then
                 SetEntityHeading(panel.entity, panel.closedHeading)
+            end
+
+            if not moving then
+                SecureMloPanel(panel.entity, true)
             end
         end
     end
@@ -118,10 +144,9 @@ function TryResolveMloGate(gateId, gate, gateData)
     gateData.panels = panels
     gateData.entity = panels[1].entity
     gateData.warningLight = ResolveMloWarningLight(gate)
+    gateData.resolved = true
 
-    if gateData.progress and gateData.progress > 0.0 then
-        UpdateMloGateTransform(gateData, gateData.progress)
-    end
+    UpdateMloGateTransform(gateData, gateData.progress or 0.0, false)
 
     print(('[rd-fahrzeugtor] MLO-Tor "%s" geladen (%d Panel(s))'):format(gateId, #panels))
     return true
@@ -132,7 +157,7 @@ function WaitForMloGates(gates, onResolved)
         local pending = {}
 
         for gateId, gateData in pairs(gates) do
-            if IsMloGate(gateData.config) then
+            if IsMloGate(gateData.config) and not gateData.resolved then
                 pending[gateId] = true
             end
         end
@@ -140,7 +165,7 @@ function WaitForMloGates(gates, onResolved)
         while next(pending) do
             for gateId in pairs(pending) do
                 local gateData = gates[gateId]
-                if TryResolveMloGate(gateId, gateData.config, gateData) then
+                if gateData.resolved or TryResolveMloGate(gateId, gateData.config, gateData) then
                     pending[gateId] = nil
                     onResolved(gateId, gateData)
                 end

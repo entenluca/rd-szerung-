@@ -11,8 +11,41 @@
 </head>
 <body>
     <div id="app" class="hidden">
-        <div class="panel">
+        <!-- Tor-Auswahl (Fernbedienung) -->
+        <div id="selector-view" class="panel hidden">
             <header class="panel-header">
+                <div class="header-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5v14"/>
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Tor-Fernbedienung</h1>
+                    <p>Wähle ein Tor zum Steuern</p>
+                </div>
+                <button class="close-btn" id="btn-close-selector" title="Schließen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </header>
+
+            <div class="gate-list" id="gate-list"></div>
+
+            <footer class="panel-footer selector-footer">
+                <span id="gate-count">0 Tore in Reichweite</span>
+            </footer>
+        </div>
+
+        <!-- Tor-Steuerung -->
+        <div id="control-view" class="panel hidden">
+            <header class="panel-header">
+                <button class="back-btn hidden" id="btn-back" title="Zurück zur Auswahl">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
                 <div class="header-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 9h18v10H3z"/>
