@@ -91,7 +91,9 @@ function BindGatePanels(gateId, stack)
             closedHeading = panel.heading,
         })
         preparedPanels[#preparedPanels + 1] = prepared
-        RegisterDoorNative(gateId, index, prepared.originalEntity or prepared.entity)
+        if Config.UseDoorNatives then
+            RegisterDoorNative(gateId, index, prepared.originalEntity or prepared.entity)
+        end
     end
 
     local gateData = GetGateData(gateId)
@@ -115,8 +117,13 @@ function BindGatePanels(gateId, stack)
     gateData.config = gateConfig
 
     UpdateMloGateTransform(gateData, 0.0, false)
-    RegisterGateTarget(gateId, gateData.entity)
-    RegisterGateZone(gateId, gateConfig)
+
+    if gateConfig.controlPanel and Config.InteractionMode == 'controlPanel' then
+        WaitForControlPanel(gateId, gateConfig, gateData)
+    else
+        RegisterGateTarget(gateId, gateData.entity)
+        RegisterGateZone(gateId, gateConfig)
+    end
 
     TriggerServerEvent('rd-fahrzeugtor:syncGateBind', gateConfig)
 
@@ -144,6 +151,11 @@ function BindGatePanels(gateId, stack)
             target = gate.target and {
                 coords = { x = gate.target.coords.x, y = gate.target.coords.y, z = gate.target.coords.z },
                 radius = gate.target.radius or 2.5,
+            },
+            controlPanel = gate.controlPanel and {
+                model = gate.controlPanel.model,
+                searchCoords = { x = gate.controlPanel.searchCoords.x, y = gate.controlPanel.searchCoords.y, z = gate.controlPanel.searchCoords.z },
+                searchRadius = gate.controlPanel.searchRadius or 1.5,
             },
         }
     end

@@ -10,7 +10,7 @@ Realistisches Fahrzeugtor-System – speziell für **MLO-Garagentore** wie die [
 
 - **MLO-Modus** – bewegt die echten Tore aus dem Mapping (kein Prop-Spawn)
 - **ox_doorlock-Setup** – `/rd_tor_setup` zum Markieren von Panels und Koordinaten ingame
-- **ox_target** – Tor anwählen oder Interaktionszone in der Tor-Mitte
+- **ox_target am Bedienfeld** – Wand-Box mit Animation, dann Steuerungs-UI (kein Auto-Öffnen)
 - **NUI-Steuerung** – Öffnen, Stopp, Schließen mit Fortschrittsanzeige
 - **Stopp-Funktion** – Tor auf jeder Höhe anhalten
 - **Fernbedienung** – Item oder `F6`, auch aus Fahrzeugen
@@ -43,10 +43,12 @@ ensure rd-fahrzeugtor
 2. `Config.UseMaavimRettungswachePreset = true` (Standard)
 3. Gehe ingame zur Rettungswache und nutze **`/rd_tor_setup`**
 4. Wähle **Tor 1 / 2 / 3** → **Panel-Auswahl starten**
-5. Schau auf ein Tor-Panel und drücke **E** (markiert alle gestapelten Panels desselben Modells)
-6. Schau auf die gewünschte Interaktionsstelle und drücke **G** (ox_target-Zone)
+5. Schau auf ein **Tor-Panel** und drücke **E** (markiert alle gestapelten Panels)
+6. Schau auf das **Wand-Bedienfeld** (Box mit Tasten) und drücke **P**
 7. Drücke **H** für die Hubhöhe (Standard: 4,2 m)
 8. **ENTER** zum Speichern → Konfiguration landet in `data/gates.json`
+
+Danach: Zum Bedienfeld laufen → **ox_target** „Bedienfeld benutzen“ → Animation → UI zum Öffnen/Schließen.
 
 Die gespeicherten Koordinaten werden beim Serverstart und für alle Spieler automatisch geladen.
 

@@ -6,6 +6,23 @@ Config.Locale = 'de'
 -- Debug-Modus für ox_target Zonen
 Config.Debug = false
 
+-- Interaktion nur am Bedienfeld (empfohlen) – keine Zonen/Tore direkt anwählbar
+Config.InteractionMode = 'controlPanel' -- 'controlPanel' | 'zone' | 'entity'
+
+-- GTA Door-Natives deaktivieren (verhindert Auto-Öffnen beim Annähern)
+Config.UseDoorNatives = false
+
+-- ox_target Reichweite am Bedienfeld
+Config.ControlPanelTargetDistance = 1.8
+
+-- Animation beim Benutzen des Bedienfelds
+Config.ControlPanelAnim = {
+    dict = 'anim@heists@keypad@',
+    clip = 'idle_a',
+    flag = 49,
+    duration = 1800,
+}
+
 -- MaaviM Rettungswache MP Preset aktivieren?
 Config.UseMaavimRettungswachePreset = true
 
@@ -56,7 +73,8 @@ Config.WarningLightBlinkMs = 450
     - panels: Liste mit { model, searchCoords, searchRadius } – je Sektional-Panel
     - closed: vec4 Referenzposition (Mitte des Tores, geschlossen)
     - travel: Hubhöhe in Metern (Alternative zu open)
-    - target: ox_target SphereZone { coords, radius } – funktioniert immer
+    - controlPanel: { model, searchCoords, searchRadius } – Wand-Bedienfeld (ox_target)
+    - target: ox_target SphereZone { coords, radius } – Fallback wenn InteractionMode = 'zone'
     - warningLight.mode = 'mlo' → vorhandene Warnleuchte im MLO finden
 
     Scanner-Befehle (ingame):

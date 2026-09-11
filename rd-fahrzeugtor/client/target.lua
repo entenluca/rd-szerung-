@@ -1,7 +1,35 @@
 local RegisteredZones = {}
 local RegisteredEntities = {}
 
+local function onControlPanelSelect(gateId)
+    UseControlPanel(gateId)
+end
+
+function RegisterControlPanelTarget(gateId, entity)
+    if not entity or not DoesEntityExist(entity) then
+        return
+    end
+
+    RegisteredEntities[gateId] = entity
+
+    exports.ox_target:addLocalEntity(entity, {
+        {
+            name = ('rd_fahrzeugtor_panel_%s'):format(gateId),
+            icon = 'fa-solid fa-toggle-on',
+            label = 'Bedienfeld benutzen',
+            distance = Config.ControlPanelTargetDistance or 1.8,
+            onSelect = function()
+                onControlPanelSelect(gateId)
+            end,
+        },
+    })
+end
+
 function RegisterGateTarget(gateId, entity)
+    if Config.InteractionMode == 'controlPanel' then
+        return
+    end
+
     if not entity or not DoesEntityExist(entity) then
         return
     end
@@ -15,18 +43,17 @@ function RegisterGateTarget(gateId, entity)
             label = 'Tor steuern',
             distance = 2.5,
             onSelect = function()
-                local gatesInRange = GetGatesInRange(8.0)
-                if #gatesInRange > 1 then
-                    OpenGateSelector()
-                else
-                    OpenGateUI(gateId)
-                end
+                onControlPanelSelect(gateId)
             end,
         },
     })
 end
 
 function RegisterGateZone(gateId, gate)
+    if Config.InteractionMode == 'controlPanel' then
+        return
+    end
+
     local target = gate.target
     if not target or not target.coords then
         return
@@ -46,12 +73,7 @@ function RegisterGateZone(gateId, gate)
                 icon = 'fa-solid fa-warehouse',
                 label = 'Tor steuern',
                 onSelect = function()
-                    local gatesInRange = GetGatesInRange(8.0)
-                    if #gatesInRange > 1 then
-                        OpenGateSelector()
-                    else
-                        OpenGateUI(gateId)
-                    end
+                    onControlPanelSelect(gateId)
                 end,
             },
         },
@@ -59,6 +81,15 @@ function RegisterGateZone(gateId, gate)
 end
 
 function RegisterGateInteraction(gateId, gate, entity)
+    if gate.controlPanel and Config.InteractionMode == 'controlPanel' then
+        local panelEntity = ResolveControlPanel(gate)
+        if panelEntity then
+            RegisterControlPanelTarget(gateId, panelEntity)
+            return
+        end
+        return
+    end
+
     RegisterGateZone(gateId, gate)
 
     if entity and DoesEntityExist(entity) then

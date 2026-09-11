@@ -273,8 +273,10 @@ function TryResolveMloGate(gateId, gate, gateData)
     gateData.resolved = true
     gateData.bound = true
 
-    for index, panel in ipairs(panels) do
-        RegisterDoorNative(gateId, index, panel.originalEntity or panel.entity)
+    if Config.UseDoorNatives then
+        for index, panel in ipairs(panels) do
+            RegisterDoorNative(gateId, index, panel.originalEntity or panel.entity)
+        end
     end
 
     UpdateMloGateTransform(gateData, gateData.progress or 0.0, false)

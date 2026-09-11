@@ -58,6 +58,14 @@ function SerializeGate(gate)
         }
     end
 
+    if gate.controlPanel and gate.controlPanel.searchCoords then
+        serialized.controlPanel = {
+            model = gate.controlPanel.model,
+            searchCoords = tableFromVec3(gate.controlPanel.searchCoords),
+            searchRadius = gate.controlPanel.searchRadius or 1.5,
+        }
+    end
+
     return serialized
 end
 
@@ -96,6 +104,14 @@ function DeserializeGate(data)
             model = data.warningLight.model,
             searchCoords = data.warningLight.searchCoords and vec3FromTable(data.warningLight.searchCoords),
             searchRadius = data.warningLight.searchRadius or 2.0,
+        }
+    end
+
+    if data.controlPanel and data.controlPanel.searchCoords then
+        gate.controlPanel = {
+            model = data.controlPanel.model,
+            searchCoords = vec3FromTable(data.controlPanel.searchCoords),
+            searchRadius = data.controlPanel.searchRadius or 1.5,
         }
     end
 

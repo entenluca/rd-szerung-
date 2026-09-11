@@ -2,7 +2,7 @@ local Gates = {}
 local ActiveGateId = nil
 local AnimationThreadRunning = false
 
-local function canControlGate()
+function CanControlGate()
     if not Config.AllowedJobs then
         return true
     end
@@ -274,7 +274,7 @@ function GetGatesInRange(maxRange)
 end
 
 function OpenGateSelector()
-    if not canControlGate() then
+    if not CanControlGate() then
         notify('Fahrzeugtor', 'Du hast keine Berechtigung, dieses Tor zu steuern.', 'error')
         return
     end
@@ -306,7 +306,7 @@ function OpenGateSelector()
 end
 
 function OpenGateUI(gateId)
-    if not canControlGate() then
+    if not CanControlGate() then
         notify('Fahrzeugtor', 'Du hast keine Berechtigung, dieses Tor zu steuern.', 'error')
         return
     end
@@ -350,7 +350,7 @@ function GetAllGates()
 end
 
 function RequestGateAction(gateId, action)
-    if not canControlGate() then
+    if not CanControlGate() then
         notify('Fahrzeugtor', 'Du hast keine Berechtigung, dieses Tor zu steuern.', 'error')
         return
     end
@@ -480,6 +480,10 @@ local function initializeConfiguredGates()
         if IsMloGate(gate) then
             local gateData = createGateData(gate, nil, nil)
             registerGate(gate.id, gate, gateData)
+
+            if gate.controlPanel and Config.InteractionMode == 'controlPanel' then
+                WaitForControlPanel(gate.id, gate, gateData)
+            end
         else
             local entity = spawnGateEntity(gate)
             if entity then
@@ -501,7 +505,12 @@ local function initializeConfiguredGates()
                 else
                     resolvedData.warningLight = ResolveMloWarningLight(gate)
                 end
-                RegisterGateTarget(resolvedId, resolvedData.entity)
+
+                if gate.controlPanel and Config.InteractionMode == 'controlPanel' then
+                    WaitForControlPanel(resolvedId, gate, resolvedData)
+                elseif Config.InteractionMode ~= 'controlPanel' then
+                    RegisterGateTarget(resolvedId, resolvedData.entity)
+                end
             end)
         end
     end
@@ -520,7 +529,7 @@ CreateThread(function()
     if Config.ShowSetupHint then
         lib.notify({
             title = 'Fahrzeugtor',
-            description = 'Tore einrichten wie ox_doorlock: /rd_tor_setup',
+            description = 'Tore einrichten: /rd_tor_setup (Panels + Bedienfeld markieren)',
             type = 'inform',
             duration = 12000,
         })

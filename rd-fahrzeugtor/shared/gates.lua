@@ -142,5 +142,13 @@ function DeserializeGateFromNetwork(data)
         }
     end
 
+    if data.controlPanel and data.controlPanel.searchCoords then
+        gate.controlPanel = {
+            model = data.controlPanel.model,
+            searchCoords = vec3FromTable(data.controlPanel.searchCoords),
+            searchRadius = data.controlPanel.searchRadius or 1.5,
+        }
+    end
+
     return gate
 end

@@ -129,6 +129,11 @@ local function drawEditorMarkers(draft)
         DrawMarker(28, panel.searchCoords.x, panel.searchCoords.y, panel.searchCoords.z + 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 220, 38, 38, 180, false, false, 2, false, nil, nil, false)
     end
 
+    if draft.controlPanel and draft.controlPanel.searchCoords then
+        local cp = draft.controlPanel.searchCoords
+        DrawMarker(2, cp.x, cp.y, cp.z + 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 34, 197, 94, 200, false, false, 2, false, nil, nil, false)
+    end
+
     if draft.target and draft.target.coords then
         DrawMarker(1, draft.target.coords.x, draft.target.coords.y, draft.target.coords.z - 0.95, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.2, 1.2, 0.5, 34, 197, 94, 120, false, false, 2, false, nil, nil, false)
     end
@@ -165,6 +170,11 @@ local function serializeDraft(draft)
             radius = draft.target.radius or 2.5,
         },
         remoteRange = draft.remoteRange or 35.0,
+        controlPanel = draft.controlPanel and {
+            model = draft.controlPanel.model,
+            searchCoords = { x = draft.controlPanel.searchCoords.x, y = draft.controlPanel.searchCoords.y, z = draft.controlPanel.searchCoords.z },
+            searchRadius = draft.controlPanel.searchRadius or 1.5,
+        },
     }
 end
 
@@ -203,7 +213,7 @@ local function startPanelPicker(draft)
     EditorActive = true
     EditorDraft = draft
 
-    lib.showTextUI('[E] Panel markieren  |  [G] Interaktionspunkt (Fadenkreuz)  |  [H] Hubhöhe  |  [ENTER] Speichern  |  [BACKSPACE] Abbrechen', {
+    lib.showTextUI('[E] Tor-Panel  |  [P] Bedienfeld  |  [H] Hubhöhe  |  [ENTER] Speichern  |  [BACKSPACE] Abbrechen', {
         position = 'top-center',
     })
 
@@ -227,17 +237,24 @@ local function startPanelPicker(draft)
                 end
             end
 
-            if IsControlJustPressed(0, 47) then -- G
-                local coords = getCameraRaycastHit()
-                if not coords then
-                    coords = GetEntityCoords(PlayerPedId())
+            if IsControlJustPressed(0, 199) then -- P
+                local entity = getLookedAtObject()
+                if entity then
+                    local coords = GetEntityCoords(entity)
+                    draft.controlPanel = {
+                        model = GetEntityModel(entity),
+                        searchCoords = coords,
+                        searchRadius = 1.5,
+                    }
+                    draft.target = { coords = coords, radius = 2.5 }
+                    lib.notify({
+                        title = 'Bedienfeld',
+                        description = ('Modell: %s | ox_target hier'):format(GetEntityModel(entity)),
+                        type = 'success',
+                    })
+                else
+                    lib.notify({ title = 'Tor-Setup', description = 'Schau auf das Wand-Bedienfeld.', type = 'error' })
                 end
-                draft.target = { coords = coords, radius = 2.5 }
-                lib.notify({
-                    title = 'Interaktionspunkt',
-                    description = ('%.2f, %.2f, %.2f'):format(coords.x, coords.y, coords.z),
-                    type = 'success',
-                })
             end
 
             if IsControlJustPressed(0, 74) then -- H
@@ -252,7 +269,9 @@ local function startPanelPicker(draft)
 
             if IsControlJustPressed(0, 191) then -- ENTER
                 if #draft.panels == 0 then
-                    lib.notify({ title = 'Tor-Setup', description = 'Mindestens 1 Panel hinzufügen.', type = 'error' })
+                    lib.notify({ title = 'Tor-Setup', description = 'Mindestens 1 Tor-Panel hinzufügen.', type = 'error' })
+                elseif not draft.controlPanel then
+                    lib.notify({ title = 'Tor-Setup', description = 'Bedienfeld mit [P] markieren.', type = 'error' })
                 else
                     updateDraftReference(draft)
                     saveAllGates()
@@ -286,6 +305,7 @@ local function openGateEditor(gateIndex)
         panels = {},
         closed = existing and existing.closed,
         target = existing and existing.target,
+        controlPanel = existing and existing.controlPanel,
     }
 
     if existing and existing.panels then
@@ -312,13 +332,23 @@ local function openGateEditor(gateIndex)
                 end,
             },
             {
-                title = 'Interaktionspunkt setzen',
-                description = 'Position im Fadenkreuz (wie ox_doorlock)',
-                icon = 'location-dot',
+                title = 'Bedienfeld markieren',
+                description = 'Schau auf die Wand-Box mit den Tasten + bestätigen',
+                icon = 'toggle-on',
                 onSelect = function()
-                    local coords = getCameraRaycastHit() or GetEntityCoords(PlayerPedId())
+                    local entity = getLookedAtObject()
+                    if not entity then
+                        lib.notify({ title = 'Fehler', description = 'Kein Objekt im Fadenkreuz.', type = 'error' })
+                        return
+                    end
+                    local coords = GetEntityCoords(entity)
+                    draft.controlPanel = {
+                        model = GetEntityModel(entity),
+                        searchCoords = coords,
+                        searchRadius = 1.5,
+                    }
                     draft.target = { coords = coords, radius = 2.5 }
-                    lib.notify({ title = 'OK', description = 'Interaktionspunkt gesetzt.', type = 'success' })
+                    lib.notify({ title = 'Bedienfeld', description = 'Markiert – ox_target erscheint hier.', type = 'success' })
                 end,
             },
             {
@@ -345,7 +375,11 @@ local function openGateEditor(gateIndex)
                 icon = 'floppy-disk',
                 onSelect = function()
                     if #draft.panels == 0 then
-                        lib.notify({ title = 'Fehler', description = 'Keine Panels ausgewählt.', type = 'error' })
+                        lib.notify({ title = 'Fehler', description = 'Keine Tor-Panels ausgewählt.', type = 'error' })
+                        return
+                    end
+                    if not draft.controlPanel then
+                        lib.notify({ title = 'Fehler', description = 'Bedienfeld noch nicht markiert.', type = 'error' })
                         return
                     end
                     updateDraftReference(draft)
@@ -368,7 +402,7 @@ local function openSetupMenu()
     local options = {
         {
             title = 'Anleitung',
-            description = 'Wie ox_doorlock: Tor wählen → Panels mit E markieren → Speichern',
+            description = 'Tor wählen → [E] Panels → [P] Bedienfeld → Speichern',
             icon = 'circle-info',
             disabled = true,
         },
@@ -378,9 +412,10 @@ local function openSetupMenu()
         local gateId = ('rwmp_tor_%d'):format(i)
         local gate = GetGateConfig(gateId)
         local panelCount = gate and gate.panels and #gate.panels or 0
+        local hasPanel = gate and gate.controlPanel and true or false
         options[#options + 1] = {
             title = gate and gate.label or ('Tor %d'):format(i),
-            description = ('%d Panel(s) konfiguriert'):format(panelCount),
+            description = ('%d Panel(s)%s'):format(panelCount, hasPanel and ' · Bedienfeld OK' or ' · kein Bedienfeld'),
             icon = 'warehouse',
             onSelect = function()
                 openGateEditor(i)
