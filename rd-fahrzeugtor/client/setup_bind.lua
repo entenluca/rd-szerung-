@@ -77,6 +77,15 @@ function BindGatePanels(gateId, stack)
     gateConfig.panels = {}
 
     for _, panel in ipairs(stack) do
+        if not ClaimPanelForGate(gateId, panel.entity) then
+            lib.notify({
+                title = 'Tor-Bindung',
+                description = 'Panel gehört schon zu einem anderen Tor – nur vertikale Segmente desselben Tores markieren.',
+                type = 'error',
+            })
+            return false
+        end
+
         gateConfig.panels[#gateConfig.panels + 1] = {
             model = panel.model,
             searchCoords = panel.coords,
@@ -118,6 +127,7 @@ function BindGatePanels(gateId, stack)
     gateData.config = gateConfig
 
     UpdateMloGateTransform(gateData, 0.0, false)
+    StartEnforceClosed(gateId, gateData)
 
     if gateConfig.controlPanel and Config.InteractionMode == 'controlPanel' then
         WaitForControlPanel(gateId, gateConfig, gateData)
