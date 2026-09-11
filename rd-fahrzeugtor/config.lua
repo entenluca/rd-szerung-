@@ -12,6 +12,18 @@ Config.InteractionMode = 'controlPanel' -- 'controlPanel' | 'zone' | 'entity'
 -- GTA Door-Natives deaktivieren (verhindert Auto-Öffnen beim Annähern)
 Config.UseDoorNatives = false
 
+-- Keine Klone: bewegt Original-Props (verhindert Doppel-Tore + MLO-Auto-Open)
+Config.UsePanelClones = false
+
+-- Hält geschlossene Tore an Position (gegen MLO-Auto-Animation)
+Config.EnforceClosedState = true
+
+-- Ein Bedienfeld = ein Tor (nicht alle 3 gleichzeitig)
+Config.SharedControlPanels = false
+
+-- Panel-Suchradius beim Laden (klein = kein Nachbar-Tor)
+Config.PanelSearchRadius = 1.2
+
 -- ox_target Reichweite am Bedienfeld
 Config.ControlPanelTargetDistance = 1.8
 

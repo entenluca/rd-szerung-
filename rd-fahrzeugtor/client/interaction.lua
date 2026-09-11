@@ -118,6 +118,21 @@ function UseControlPanel(gateId)
 end
 
 function GetGatesForControlPanel(panelEntity, preferredGateId)
+    if not Config.SharedControlPanels and preferredGateId then
+        local gateData = GetGateData(preferredGateId)
+        if gateData and gateData.bound then
+            return {
+                {
+                    id = preferredGateId,
+                    label = gateData.config.label,
+                    state = gateData.state,
+                    progress = gateData.progress,
+                    progressLabel = GetProgressLabel(gateData.progress),
+                },
+            }
+        end
+    end
+
     local results = {}
     local panelCoords = GetEntityCoords(panelEntity)
 

@@ -1,4 +1,5 @@
 local DoorHashes = {}
+local ClaimedPanelEntities = {}
 
 local function requestEntityControl(entity)
     if not entity or not DoesEntityExist(entity) then
@@ -76,6 +77,10 @@ local function createPanelClone(originalEntity)
     return clone
 end
 
+function ClearClaimedPanels()
+    ClaimedPanelEntities = {}
+end
+
 function PrepareMloPanel(panel)
     if panel.clone and DoesEntityExist(panel.clone) then
         return panel
@@ -85,9 +90,15 @@ function PrepareMloPanel(panel)
         return panel
     end
 
-    panel.originalEntity = panel.entity
     panel.closedCoords = GetEntityCoords(panel.entity)
     panel.closedHeading = GetEntityHeading(panel.entity)
+
+    if not Config.UsePanelClones then
+        SecureMloPanel(panel.entity, true)
+        return panel
+    end
+
+    panel.originalEntity = panel.entity
 
     local clone = createPanelClone(panel.entity)
     if clone then
@@ -129,30 +140,28 @@ function SetDoorNativeState(gateId, panelIndex, open)
     end
 end
 
-local function findObjectAt(model, coords, radius)
+local function findClosestObjectAt(model, coords, radius)
     local entity = GetClosestObjectOfType(coords.x, coords.y, coords.z, radius, model, false, false, false)
     if entity ~= 0 and DoesEntityExist(entity) then
-        return entity
+        local entityCoords = GetEntityCoords(entity)
+        if #(entityCoords - coords) <= radius then
+            return entity
+        end
     end
 end
 
-local function findAllObjectsAt(model, coords, radius)
-    local found = {}
-    local handle, entity = FindFirstObject()
-    local success = true
-
-    while success do
-        if DoesEntityExist(entity) and GetEntityModel(entity) == model then
-            local entityCoords = GetEntityCoords(entity)
-            if #(entityCoords - coords) <= radius then
-                found[#found + 1] = entity
-            end
-        end
-        success, entity = FindNextObject(handle)
+local function claimPanelEntity(gateId, entity)
+    if not entity or not DoesEntityExist(entity) then
+        return false
     end
 
-    EndFindObject(handle)
-    return found
+    local owner = ClaimedPanelEntities[entity]
+    if owner and owner ~= gateId then
+        return false
+    end
+
+    ClaimedPanelEntities[entity] = gateId
+    return true
 end
 
 function SecureMloPanel(entity, frozen)
@@ -188,17 +197,10 @@ function ResolveMloPanels(gate)
 
     for _, definition in ipairs(definitions) do
         local coords = definition.searchCoords
-        local radius = definition.searchRadius or 3.0
-        local entities = findAllObjectsAt(definition.model, coords, radius)
+        local radius = definition.searchRadius or Config.PanelSearchRadius or 1.2
+        local entity = findClosestObjectAt(definition.model, coords, radius)
 
-        if #entities == 0 then
-            local entity = findObjectAt(definition.model, coords, radius)
-            if entity then
-                entities = { entity }
-            end
-        end
-
-        for _, entity in ipairs(entities) do
+        if entity and claimPanelEntity(gate.id, entity) then
             panels[#panels + 1] = PrepareMloPanel({
                 entity = entity,
                 closedCoords = GetEntityCoords(entity),
@@ -221,7 +223,25 @@ function ResolveMloWarningLight(gate)
         return nil
     end
 
-    return findObjectAt(lightConfig.model, coords, lightConfig.searchRadius or 2.0)
+    return findClosestObjectAt(lightConfig.model, coords, lightConfig.searchRadius or 2.0)
+end
+
+function StartEnforceClosed(gateId, gateData)
+    if not Config.EnforceClosedState then
+        return
+    end
+
+    CreateThread(function()
+        while gateData.bound and gateData.config and gateData.config.id == gateId do
+            if gateData.state == GateStates.CLOSED
+                and (gateData.progress or 0) <= 0.01
+                and not IsGateMoving(gateData.state) then
+                UpdateMloGateTransform(gateData, 0.0, false)
+                SecureMloGatePanels(gateData, true)
+            end
+            Wait(750)
+        end
+    end)
 end
 
 function UpdateMloGateTransform(gateData, progress, moving)
@@ -280,6 +300,7 @@ function TryResolveMloGate(gateId, gate, gateData)
     end
 
     UpdateMloGateTransform(gateData, gateData.progress or 0.0, false)
+    StartEnforceClosed(gateId, gateData)
 
     print(('[rd-fahrzeugtor] MLO-Tor "%s" geladen (%d Panel(s))'):format(gateId, #panels))
     return true
@@ -311,6 +332,12 @@ end
 
 function CleanupMloGate(gateData)
     for _, panel in ipairs(gateData.panels or {}) do
+        if panel.entity then
+            ClaimedPanelEntities[panel.entity] = nil
+        end
+        if panel.originalEntity then
+            ClaimedPanelEntities[panel.originalEntity] = nil
+        end
         if panel.clone and DoesEntityExist(panel.clone) then
             DeleteEntity(panel.clone)
         end

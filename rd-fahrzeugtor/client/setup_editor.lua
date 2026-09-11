@@ -53,7 +53,9 @@ local function findStackedPanels(originEntity, radius)
     while success do
         if DoesEntityExist(entity) and entity ~= originEntity and GetEntityModel(entity) == originModel then
             local coords = GetEntityCoords(entity)
-            if #(vector2(coords.x, coords.y) - vector2(originCoords.x, originCoords.y)) <= (radius or 3.0) then
+            local horizontal = #(vector2(coords.x, coords.y) - vector2(originCoords.x, originCoords.y))
+            local vertical = math.abs(coords.z - originCoords.z)
+            if horizontal <= 0.45 and vertical <= (radius or 3.0) then
                 panels[#panels + 1] = {
                     entity = entity,
                     model = originModel,
@@ -313,7 +315,7 @@ local function openGateEditor(gateIndex)
             draft.panels[#draft.panels + 1] = {
                 model = panel.model,
                 searchCoords = panel.searchCoords,
-                searchRadius = panel.searchRadius or 3.0,
+                searchRadius = panel.searchRadius or 1.2,
             }
         end
     end

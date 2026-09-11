@@ -386,6 +386,7 @@ function ReloadAllGates(gatesData)
     end
 
     ClearAllGateZones()
+    ClearClaimedPanels()
     Gates = {}
 
     Config.Gates = {}

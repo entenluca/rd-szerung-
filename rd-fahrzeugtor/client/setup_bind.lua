@@ -35,7 +35,8 @@ local function findStackedPanels(originEntity, radius)
         if DoesEntityExist(entity) and entity ~= originEntity and GetEntityModel(entity) == originModel then
             local coords = GetEntityCoords(entity)
             local horizontal = #(vector2(coords.x, coords.y) - vector2(originCoords.x, originCoords.y))
-            if horizontal <= (radius or 3.0) then
+            local vertical = math.abs(coords.z - originCoords.z)
+            if horizontal <= 0.45 and vertical <= (radius or 3.0) then
                 panels[#panels + 1] = {
                     entity = entity,
                     coords = coords,
@@ -79,7 +80,7 @@ function BindGatePanels(gateId, stack)
         gateConfig.panels[#gateConfig.panels + 1] = {
             model = panel.model,
             searchCoords = panel.coords,
-            searchRadius = 3.0,
+            searchRadius = 1.2,
         }
     end
 
@@ -243,7 +244,11 @@ RegisterNetEvent('rd-fahrzeugtor:applyGateBind', function(gateConfig)
 
     if gateConfig.panels and #gateConfig.panels > 0 then
         TryResolveMloGate(gateConfig.id, gateData.config, gateData)
-        RegisterGateTarget(gateConfig.id, gateData.entity)
+        if gateConfig.controlPanel and Config.InteractionMode == 'controlPanel' then
+            WaitForControlPanel(gateConfig.id, gateData.config, gateData)
+        else
+            RegisterGateTarget(gateConfig.id, gateData.entity)
+        end
     end
 end)
 
