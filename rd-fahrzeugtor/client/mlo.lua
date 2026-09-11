@@ -164,6 +164,10 @@ local function claimPanelEntity(gateId, entity)
     return true
 end
 
+function ClaimPanelForGate(gateId, entity)
+    return claimPanelEntity(gateId, entity)
+end
+
 function SecureMloPanel(entity, frozen)
     if not entity or not DoesEntityExist(entity) then
         return
