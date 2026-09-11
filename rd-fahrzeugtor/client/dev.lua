@@ -53,7 +53,7 @@ RegisterCommand('rd_tor_scan', function(_, args)
     print(('Gefundene Objekte: %d'):format(#objects))
 
     for index, entry in ipairs(objects) do
-        print(('')
+        print('')
         print(('[%d] Distanz: %.2fm | Entity: %s'):format(index, entry.distance, entry.entity))
         print(('     Modell: %s'):format(getModelLabel(entry.model)))
         print(('     Archetype: %s'):format(entry.archetype or 'n/a'))
