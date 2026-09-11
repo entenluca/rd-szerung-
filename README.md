@@ -48,7 +48,7 @@ Config.Gates = {
 | `doorHash` | Feste Door-ID falls vom MLO vorgegeben |
 | `rate` | Öffnungsgeschwindigkeit |
 
-MaaviM Preset: `Config.UseMaavimRettungswachePreset = true`
+MaaviM Preset: `Config.UseMaavimRettungswachePreset = true` (Resource: `MM_Rettungswache`, Modell: `mm_rdw_gate` / `-41480326`)
 
 ## Tore finden & eintragen
 

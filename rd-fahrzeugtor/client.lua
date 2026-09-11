@@ -206,6 +206,10 @@ RegisterNetEvent('rd-fahrzeugtor:initDoors', function(states)
 end)
 
 CreateThread(function()
+    if Config.MloResource and GetResourceState(Config.MloResource) == 'missing' then
+        print(('[rd-fahrzeugtor] WARNUNG: MLO "%s" nicht gefunden – ensure vor rd-fahrzeugtor!'):format(Config.MloResource))
+    end
+
     Wait(1000)
     initializeGates()
     waitForMissingGates()

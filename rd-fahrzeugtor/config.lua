@@ -6,6 +6,9 @@ Config.Debug = false
 -- MaaviM Rettungswache MP Preset laden?
 Config.UseMaavimRettungswachePreset = true
 
+-- MLO-Ressource (muss vor rd-fahrzeugtor gestartet werden)
+Config.MloResource = 'MM_Rettungswache'
+
 -- Öffnungs-/Schließgeschwindigkeit (Door-System Rate)
 Config.DoorRate = 1.0
 
